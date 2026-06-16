@@ -1,0 +1,89 @@
+# =========================================================
+# Internal process / planning documents (NOT part of product)
+# =========================================================
+TASKS.md
+PROGRESS.md
+docs/internal/
+docs/checkpoints/
+*.scratch.md
+
+# =========================================================
+# Java / Spring Boot
+# =========================================================
+target/
+*.class
+*.jar
+!.mvn/wrapper/maven-wrapper.jar
+.mvn/
+!**/src/main/**
+!**/src/test/**
+HELP.md
+build/
+out/
+.gradle/
+
+# =========================================================
+# Node / React / Frontend
+# =========================================================
+node_modules/
+dist/
+build/
+.vite/
+coverage/
+*.tsbuildinfo
+.eslintcache
+
+# =========================================================
+# Environment & secrets
+# =========================================================
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.crt
+secrets/
+**/secrets/*.yaml
+!**/secrets/*.example.yaml
+
+# =========================================================
+# Terraform
+# =========================================================
+**/.terraform/*
+*.tfstate
+*.tfstate.*
+*.tfvars
+!*.tfvars.example
+crash.log
+crash.*.log
+.terraformrc
+terraform.rc
+
+# =========================================================
+# Helm
+# =========================================================
+**/charts/*.tgz
+**/Chart.lock
+
+# =========================================================
+# Docker
+# =========================================================
+*.log
+
+# =========================================================
+# IDE / OS
+# =========================================================
+.idea/
+.vscode/
+*.iml
+.DS_Store
+Thumbs.db
+
+# =========================================================
+# Test / Coverage artifacts
+# =========================================================
+**/jacoco/
+**/test-results/
+**/playwright-report/
+**/.pytest_cache/
+**/__pycache__/

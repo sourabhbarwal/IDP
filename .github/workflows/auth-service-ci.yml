@@ -1,0 +1,189 @@
+name: auth-service CI
+
+on:
+  push:
+    branches: [main, develop]
+    paths:
+      - "backend/auth-service/**"
+      - "backend/common/**"
+      - "backend/package.json"
+      - "backend/tsconfig.base.json"
+      - ".github/workflows/auth-service-ci.yml"
+  pull_request:
+    branches: [main, develop]
+    paths:
+      - "backend/auth-service/**"
+      - "backend/common/**"
+      - "backend/package.json"
+      - "backend/tsconfig.base.json"
+      - ".github/workflows/auth-service-ci.yml"
+
+env:
+  NODE_VERSION: "20"
+  IMAGE_NAME: auth-service
+
+jobs:
+  # ───────────────────────────────────────────────────
+  # Job 1: Lint + Unit Tests + Coverage
+  # ───────────────────────────────────────────────────
+  lint-and-unit-test:
+    name: Lint & Unit Tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js ${{ env.NODE_VERSION }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "npm"
+          cache-dependency-path: backend/package-lock.json
+
+      - name: Install dependencies
+        working-directory: backend
+        run: npm ci
+
+      - name: Build common library
+        working-directory: backend
+        run: npm run build --workspace=common
+
+      - name: Lint (auth-service)
+        working-directory: backend/auth-service
+        run: npm run lint
+        continue-on-error: false
+
+      - name: Unit tests with coverage
+        working-directory: backend/auth-service
+        run: npm run test:cov
+        env:
+          CI: true
+
+      - name: Upload coverage report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: unit-test-coverage
+          path: backend/auth-service/coverage/
+
+  # ───────────────────────────────────────────────────
+  # Job 2: Integration Tests (Testcontainers)
+  # ───────────────────────────────────────────────────
+  integration-test:
+    name: Integration Tests
+    runs-on: ubuntu-latest
+    needs: lint-and-unit-test
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js ${{ env.NODE_VERSION }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "npm"
+          cache-dependency-path: backend/package-lock.json
+
+      - name: Install dependencies
+        working-directory: backend
+        run: npm ci
+
+      - name: Build common library
+        working-directory: backend
+        run: npm run build --workspace=common
+
+      - name: Run integration tests
+        working-directory: backend/auth-service
+        run: npm run test:e2e
+        env:
+          CI: true
+          # Testcontainers will spin up its own Postgres container;
+          # these are overridden at runtime but must be set for the config loader.
+          JWT_SECRET: ci-integration-test-secret-long-enough
+          JWT_ACCESS_TOKEN_TTL_SECONDS: "900"
+          JWT_REFRESH_TOKEN_TTL_SECONDS: "604800"
+
+  # ───────────────────────────────────────────────────
+  # Job 3: Build TypeScript
+  # ───────────────────────────────────────────────────
+  build:
+    name: TypeScript Build
+    runs-on: ubuntu-latest
+    needs: lint-and-unit-test
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js ${{ env.NODE_VERSION }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "npm"
+          cache-dependency-path: backend/package-lock.json
+
+      - name: Install dependencies
+        working-directory: backend
+        run: npm ci
+
+      - name: Build common library
+        working-directory: backend
+        run: npm run build --workspace=common
+
+      - name: Build auth-service
+        working-directory: backend
+        run: npm run build --workspace=auth-service
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: auth-service-dist
+          path: backend/auth-service/dist/
+          retention-days: 7
+
+  # ───────────────────────────────────────────────────
+  # Job 4: Docker Build (+ push on main branch)
+  # ───────────────────────────────────────────────────
+  docker-build:
+    name: Docker Build
+    runs-on: ubuntu-latest
+    needs: [integration-test, build]
+
+    permissions:
+      contents: read
+      id-token: write  # for OIDC-based ECR auth in Phase 5+
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Extract Docker metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.IMAGE_NAME }}
+          tags: |
+            type=sha,prefix=sha-
+            type=ref,event=branch
+            type=semver,pattern={{version}}
+
+      # Build only (no push) on PRs and non-main branches
+      - name: Build Docker image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: backend/auth-service/Dockerfile
+          push: false
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      # TODO (Phase 5): Add ECR push step here once AWS credentials/ECR repo
+      # are provisioned by Terraform. The OIDC role ARN will be stored as a
+      # GitHub Actions secret (AWS_ECR_ROLE_ARN).

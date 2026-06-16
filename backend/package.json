@@ -1,0 +1,22 @@
+{
+  "name": "idp-platform-backend",
+  "version": "0.1.0",
+  "private": true,
+  "description": "IDP Platform backend monorepo (NestJS microservices) - npm workspaces",
+  "workspaces": [
+    "common",
+    "auth-service"
+  ],
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "scripts": {
+    "build": "npm run build --workspaces --if-present",
+    "lint": "npm run lint --workspaces --if-present",
+    "test": "npm run test --workspaces --if-present",
+    "test:cov": "npm run test:cov --workspaces --if-present"
+  },
+  "devDependencies": {
+    "typescript": "^5.5.4"
+  }
+}
