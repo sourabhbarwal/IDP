@@ -7,6 +7,7 @@ on:
       - "backend/auth-service/**"
       - "backend/common/**"
       - "backend/package.json"
+      - "backend/package-lock.json"
       - "backend/tsconfig.base.json"
       - ".github/workflows/auth-service-ci.yml"
   pull_request:
@@ -15,6 +16,7 @@ on:
       - "backend/auth-service/**"
       - "backend/common/**"
       - "backend/package.json"
+      - "backend/package-lock.json"
       - "backend/tsconfig.base.json"
       - ".github/workflows/auth-service-ci.yml"
 
@@ -52,7 +54,6 @@ jobs:
       - name: Lint (auth-service)
         working-directory: backend/auth-service
         run: npm run lint
-        continue-on-error: false
 
       - name: Unit tests with coverage
         working-directory: backend/auth-service
@@ -99,8 +100,6 @@ jobs:
         run: npm run test:e2e
         env:
           CI: true
-          # Testcontainers will spin up its own Postgres container;
-          # these are overridden at runtime but must be set for the config loader.
           JWT_SECRET: ci-integration-test-secret-long-enough
           JWT_ACCESS_TOKEN_TTL_SECONDS: "900"
           JWT_REFRESH_TOKEN_TTL_SECONDS: "604800"
@@ -144,7 +143,7 @@ jobs:
           retention-days: 7
 
   # ───────────────────────────────────────────────────
-  # Job 4: Docker Build (+ push on main branch)
+  # Job 4: Docker Build
   # ───────────────────────────────────────────────────
   docker-build:
     name: Docker Build
@@ -153,7 +152,7 @@ jobs:
 
     permissions:
       contents: read
-      id-token: write  # for OIDC-based ECR auth in Phase 5+
+      id-token: write
 
     steps:
       - name: Checkout
@@ -172,7 +171,6 @@ jobs:
             type=ref,event=branch
             type=semver,pattern={{version}}
 
-      # Build only (no push) on PRs and non-main branches
       - name: Build Docker image
         uses: docker/build-push-action@v6
         with:
@@ -183,7 +181,3 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
-
-      # TODO (Phase 5): Add ECR push step here once AWS credentials/ECR repo
-      # are provisioned by Terraform. The OIDC role ARN will be stored as a
-      # GitHub Actions secret (AWS_ECR_ROLE_ARN).
