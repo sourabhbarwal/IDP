@@ -50,6 +50,7 @@ async function bootstrap(): Promise<void> {
   // ── Health endpoint (Kubernetes liveness / readiness probe target) ────────────
   // Full health checks (DB connectivity) are added via @nestjs/terminus in Phase 6.
   // For now the /health path is handled by the actuator-style controller below.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   app.getHttpAdapter().get('/health', (req: any, res: any) => {
     res.status(200).send({ status: 'UP' });
   });
