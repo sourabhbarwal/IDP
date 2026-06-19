@@ -47,6 +47,7 @@
     "@types/jest": "^29.5.12",
     "@types/node": "^20.14.15",
     "@types/passport-jwt": "^4.0.1",
+    "@types/pg": "^8.11.6",
     "@types/supertest": "^6.0.2",
     "@typescript-eslint/eslint-plugin": "^7.18.0",
     "@typescript-eslint/parser": "^7.18.0",
@@ -66,15 +67,21 @@
     "moduleFileExtensions": ["js", "json", "ts"],
     "rootDir": "src",
     "testRegex": ".*\\.spec\\.ts$",
+    "testPathIgnorePatterns": [
+      "<rootDir>/integration/"
+    ],
     "transform": {
-      "^.+\\.(t|j)s$": "ts-jest"
+      "^.+\\.ts$": "ts-jest"
+    },
+    "moduleNameMapper": {
+      "^@idp/common$": "<rootDir>/../../common/src/index.ts"
     },
     "collectCoverageFrom": [
-      "**/*.(t|j)s",
-      "!**/*.module.ts",
-      "!main.ts",
-      "!**/infrastructure/persistence/migrations/**",
-      "!**/infrastructure/persistence/typeorm.config.ts"
+      "domain/entities/**/*.ts",
+      "domain/enums/**/*.ts",
+      "domain/exceptions/**/*.ts",
+      "application/use-cases/**/*.ts",
+      "!**/*.spec.ts"
     ],
     "coverageDirectory": "../coverage",
     "testEnvironment": "node",
