@@ -5,7 +5,8 @@
   "description": "IDP Platform backend monorepo (NestJS microservices) - npm workspaces",
   "workspaces": [
     "common",
-    "auth-service"
+    "auth-service",
+    "service-catalog-service"
   ],
   "engines": {
     "node": ">=20.0.0"

@@ -1,0 +1,9 @@
+{
+  "moduleFileExtensions": ["js", "json", "ts"],
+  "rootDir": "../src/integration",
+  "testRegex": ".integration.spec.ts$",
+  "transform": { "^.+\\.ts$": "ts-jest" },
+  "moduleNameMapper": { "^@idp/common$": "<rootDir>/../../../../common/src/index.ts" },
+  "testEnvironment": "node",
+  "testTimeout": 120000
+}

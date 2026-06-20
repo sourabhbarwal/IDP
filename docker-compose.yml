@@ -1,13 +1,5 @@
 version: "3.9"
 
-# ─────────────────────────────────────────────────────────────────────────────
-# IDP Platform — Local Development Stack (Phase 1)
-# Usage:
-#   docker compose up -d           # start everything
-#   docker compose logs -f auth    # follow auth-service logs
-#   docker compose down -v         # stop and remove volumes
-# ─────────────────────────────────────────────────────────────────────────────
-
 services:
   postgres:
     image: postgres:16-alpine
@@ -50,8 +42,6 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-      redis:
-        condition: service_healthy
     ports:
       - "3001:3001"
     environment:
@@ -65,17 +55,36 @@ services:
       DB_SCHEMA: auth
       REDIS_HOST: redis
       REDIS_PORT: 6379
-      # ⚠ Change this secret in every real environment!
       JWT_SECRET: local-dev-only-secret-change-in-production
       JWT_ACCESS_TOKEN_TTL_SECONDS: 900
       JWT_REFRESH_TOKEN_TTL_SECONDS: 604800
       JWT_ISSUER: idp-platform
       ALLOWED_ORIGINS: http://localhost:5173
-    healthcheck:
-      test: ["CMD-SHELL", "wget -qO- http://localhost:3001/health || exit 1"]
-      interval: 30s
-      timeout: 5s
-      retries: 3
+
+  service-catalog-service:
+    build:
+      context: .
+      dockerfile: backend/service-catalog-service/Dockerfile
+    container_name: idp-service-catalog
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "3002:3002"
+    environment:
+      NODE_ENV: development
+      PORT: 3002
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_USERNAME: idp
+      DB_PASSWORD: ***REMOVED***
+      DB_NAME: idp
+      DB_SCHEMA: catalog
+      # Must match auth-service JWT_SECRET exactly so tokens validate cross-service
+      JWT_SECRET: local-dev-only-secret-change-in-production
+      JWT_ISSUER: idp-platform
+      ALLOWED_ORIGINS: http://localhost:5173
 
 volumes:
   postgres_data:

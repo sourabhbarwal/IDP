@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../../hooks/redux';
 import { logout, getMe } from '../../store/slices/authSlice';
+import { Link } from 'react-router-dom';
 
 const ROLE_COLORS: Record<string, string> = {
   DEVELOPER: 'bg-blue-100 text-blue-700',
@@ -99,19 +100,31 @@ export default function DashboardPage() {
         </div>
 
         {/* Upcoming modules placeholder */}
+        {/* Quick Navigation */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {[
-            { title: 'Service Catalog', desc: 'Manage your services', icon: '📦', phase: 'Phase 2' },
-            { title: 'Deployments', desc: 'Deploy & rollback services', icon: '🚀', phase: 'Phase 6' },
-            { title: 'AI Copilot', desc: 'AI-powered assistance', icon: '🤖', phase: 'Phase 11' },
-          ].map((item) => (
-            <div key={item.title} className="bg-white rounded-2xl shadow-sm border border-dashed border-gray-200 p-6 opacity-60">
-              <div className="text-3xl mb-3">{item.icon}</div>
-              <h3 className="font-semibold text-gray-800">{item.title}</h3>
-              <p className="text-sm text-gray-500 mt-1">{item.desc}</p>
-              <span className="inline-block mt-3 text-xs px-2 py-0.5 rounded bg-gray-100 text-gray-500">{item.phase}</span>
-            </div>
-          ))}
+          <Link
+            to="/catalog"
+            className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 hover:border-primary-300 hover:shadow-md transition-all group"
+          >
+            <div className="text-3xl mb-3">📦</div>
+            <h3 className="font-semibold text-gray-800 group-hover:text-primary-600">Service Catalog</h3>
+            <p className="text-sm text-gray-500 mt-1">Browse and manage platform services</p>
+            <p className="text-xs text-primary-600 mt-3 font-medium">Open →</p>
+          </Link>
+
+          <div className="bg-white rounded-2xl shadow-sm border border-dashed border-gray-200 p-6 opacity-60">
+            <div className="text-3xl mb-3">🚀</div>
+            <h3 className="font-semibold text-gray-800">Deployments</h3>
+            <p className="text-sm text-gray-500 mt-1">Deploy & rollback services</p>
+            <span className="inline-block mt-3 text-xs px-2 py-0.5 rounded bg-gray-100 text-gray-500">Phase 6</span>
+          </div>
+
+          <div className="bg-white rounded-2xl shadow-sm border border-dashed border-gray-200 p-6 opacity-60">
+            <div className="text-3xl mb-3">🤖</div>
+            <h3 className="font-semibold text-gray-800">AI Copilot</h3>
+            <p className="text-sm text-gray-500 mt-1">AI-powered operational assistance</p>
+            <span className="inline-block mt-3 text-xs px-2 py-0.5 rounded bg-gray-100 text-gray-500">Phase 11</span>
+          </div>
         </div>
       </main>
     </div>
