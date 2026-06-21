@@ -81,10 +81,36 @@ services:
       DB_PASSWORD: ***REMOVED***
       DB_NAME: idp
       DB_SCHEMA: catalog
-      # Must match auth-service JWT_SECRET exactly so tokens validate cross-service
       JWT_SECRET: local-dev-only-secret-change-in-production
       JWT_ISSUER: idp-platform
       ALLOWED_ORIGINS: http://localhost:5173
+
+  repository-service:
+    build:
+      context: .
+      dockerfile: backend/repository-service/Dockerfile
+    container_name: idp-repository-service
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "3003:3003"
+    environment:
+      NODE_ENV: development
+      PORT: 3003
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_USERNAME: idp
+      DB_PASSWORD: ***REMOVED***
+      DB_NAME: idp
+      DB_SCHEMA: repository
+      JWT_SECRET: local-dev-only-secret-change-in-production
+      JWT_ISSUER: idp-platform
+      ALLOWED_ORIGINS: http://localhost:5173
+      # Set your real GitHub token here for local dev
+      GITHUB_TOKEN: ${GITHUB_TOKEN:-}
+      GITHUB_OWNER: ${GITHUB_OWNER:-your-github-username}
 
 volumes:
   postgres_data:

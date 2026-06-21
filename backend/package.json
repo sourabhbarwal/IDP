@@ -6,18 +6,15 @@
   "workspaces": [
     "common",
     "auth-service",
-    "service-catalog-service"
+    "service-catalog-service",
+    "repository-service"
   ],
-  "engines": {
-    "node": ">=20.0.0"
-  },
+  "engines": { "node": ">=20.0.0" },
   "scripts": {
     "build": "npm run build --workspaces --if-present",
     "lint": "npm run lint --workspaces --if-present",
     "test": "npm run test --workspaces --if-present",
     "test:cov": "npm run test:cov --workspaces --if-present"
   },
-  "devDependencies": {
-    "typescript": "^5.5.4"
-  }
+  "devDependencies": { "typescript": "^5.5.4" }
 }

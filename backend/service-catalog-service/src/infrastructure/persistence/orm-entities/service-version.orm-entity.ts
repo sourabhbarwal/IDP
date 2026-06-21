@@ -1,6 +1,6 @@
 import {
   Column, CreateDateColumn, Entity, Index,
-  ManyToOne, PrimaryGeneratedColumn,
+  ManyToOne, PrimaryGeneratedColumn, JoinColumn,
 } from 'typeorm';
 import { ServiceOrmEntity } from './service.orm-entity';
 
@@ -12,6 +12,7 @@ export class ServiceVersionOrmEntity {
   @Column({ name: 'service_id', type: 'uuid' }) serviceId!: string;
 
   @ManyToOne(() => ServiceOrmEntity, (s) => s.versions, { onDelete: 'CASCADE' })
+  @JoinColumn({ name: 'service_id' })
   service!: ServiceOrmEntity;
 
   @Column({ type: 'varchar', length: 50 }) version!: string;
