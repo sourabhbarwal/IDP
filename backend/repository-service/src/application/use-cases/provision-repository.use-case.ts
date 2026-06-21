@@ -39,27 +39,43 @@ export class ProvisionRepositoryUseCase {
 
   async execute(command: ProvisionRepositoryCommand): Promise<Repository> {
     // 1. Check for duplicate
-    const exists = await this.repoRepository.existsByServiceId(command.serviceId);
-    if (exists) {
-      throw new RepositoryAlreadyExistsError(command.serviceId);
+    let record: Repository;
+    const existing = await this.repoRepository.findByServiceId(command.serviceId);
+    
+    if (existing) {
+      if (existing.status !== RepositoryStatus.FAILED) {
+        throw new RepositoryAlreadyExistsError(command.serviceId);
+      }
+      // If it failed previously, reset it to PROVISIONING, update details with current configuration, and reuse the record
+      record = await this.repoRepository.update(existing.id, {
+        status: RepositoryStatus.PROVISIONING,
+        githubOwner: command.githubOwner,
+        githubRepo: command.serviceName,
+        fullName: `${command.githubOwner}/${command.serviceName}`,
+        htmlUrl: `https://github.com/${command.githubOwner}/${command.serviceName}`,
+        cloneUrl: `https://github.com/${command.githubOwner}/${command.serviceName}.git`,
+        sshUrl: `git@github.com:${command.githubOwner}/${command.serviceName}.git`,
+        visibility: command.visibility,
+        errorMessage: null,
+      });
+    } else {
+      // 2. Create a PROVISIONING record immediately so the UI can show progress
+      record = await this.repoRepository.create({
+        serviceId: command.serviceId,
+        serviceName: command.serviceName,
+        serviceType: command.serviceType,
+        githubOwner: command.githubOwner,
+        githubRepo: command.serviceName,
+        fullName: `${command.githubOwner}/${command.serviceName}`,
+        defaultBranch: 'main',
+        htmlUrl: `https://github.com/${command.githubOwner}/${command.serviceName}`,
+        cloneUrl: `https://github.com/${command.githubOwner}/${command.serviceName}.git`,
+        sshUrl: `git@github.com:${command.githubOwner}/${command.serviceName}.git`,
+        visibility: command.visibility,
+        status: RepositoryStatus.PROVISIONING,
+        provisionedBy: command.actorId,
+      });
     }
-
-    // 2. Create a PROVISIONING record immediately so the UI can show progress
-    const record = await this.repoRepository.create({
-      serviceId: command.serviceId,
-      serviceName: command.serviceName,
-      serviceType: command.serviceType,
-      githubOwner: command.githubOwner,
-      githubRepo: command.serviceName,
-      fullName: `${command.githubOwner}/${command.serviceName}`,
-      defaultBranch: 'main',
-      htmlUrl: `https://github.com/${command.githubOwner}/${command.serviceName}`,
-      cloneUrl: `https://github.com/${command.githubOwner}/${command.serviceName}.git`,
-      sshUrl: `git@github.com:${command.githubOwner}/${command.serviceName}.git`,
-      visibility: command.visibility,
-      status: RepositoryStatus.PROVISIONING,
-      provisionedBy: command.actorId,
-    });
 
     try {
       // 3. Create GitHub repository

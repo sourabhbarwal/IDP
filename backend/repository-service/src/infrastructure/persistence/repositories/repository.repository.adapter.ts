@@ -49,4 +49,26 @@ export class RepositoryRepositoryAdapter implements RepositoryRepository {
   async updateStatus(id: string, status: RepositoryStatus, errorMessage?: string): Promise<void> {
     await this.repo.update({ id }, { status, errorMessage: errorMessage ?? null });
   }
+
+  async update(
+    id: string,
+    params: Partial<{
+      githubOwner: string;
+      githubRepo: string;
+      fullName: string;
+      htmlUrl: string;
+      cloneUrl: string;
+      sshUrl: string;
+      visibility: RepositoryVisibility;
+      status: RepositoryStatus;
+      errorMessage: string | null;
+    }>,
+  ): Promise<Repository> {
+    await this.repo.update({ id }, params);
+    const updated = await this.repo.findOne({ where: { id } });
+    if (!updated) {
+      throw new Error(`Repository with id ${id} not found`);
+    }
+    return toDomainRepository(updated);
+  }
 }

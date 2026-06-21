@@ -20,6 +20,7 @@ const mockRepoRepo = {
   existsByServiceId: jest.fn(),
   create: jest.fn(),
   updateStatus: jest.fn(),
+  update: jest.fn(),
 };
 
 describe('ListRepositoriesUseCase', () => {

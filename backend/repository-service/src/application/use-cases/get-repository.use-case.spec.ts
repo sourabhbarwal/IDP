@@ -21,6 +21,7 @@ const mockRepoRepo = {
   create: jest.fn(),
   findAll: jest.fn(),
   updateStatus: jest.fn(),
+  update: jest.fn(),
 };
 
 describe('GetRepositoryUseCase', () => {

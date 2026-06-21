@@ -18,6 +18,7 @@ const activeRepo = new Repository({
 const mockRepoRepo = {
   existsByServiceId: jest.fn(), create: jest.fn(), findById: jest.fn(),
   updateStatus: jest.fn(), findByServiceId: jest.fn(), findAll: jest.fn(),
+  update: jest.fn(),
 };
 const mockGithubClient = {
   createRepository: jest.fn(),
@@ -44,7 +45,7 @@ describe('ProvisionRepositoryUseCase', () => {
   });
 
   it('provisions a repository and returns ACTIVE record', async () => {
-    mockRepoRepo.existsByServiceId.mockResolvedValue(false);
+    mockRepoRepo.findByServiceId.mockResolvedValue(null);
     mockRepoRepo.create.mockResolvedValue(activeRepo);
     mockGithubClient.createRepository.mockResolvedValue({
       fullName: 'org/my-api', htmlUrl: 'https://github.com/org/my-api',
@@ -73,13 +74,13 @@ describe('ProvisionRepositoryUseCase', () => {
     );
   });
 
-  it('throws RepositoryAlreadyExistsError when serviceId already has a repo', async () => {
-    mockRepoRepo.existsByServiceId.mockResolvedValue(true);
+  it('throws RepositoryAlreadyExistsError when serviceId already has an active repo', async () => {
+    mockRepoRepo.findByServiceId.mockResolvedValue(activeRepo);
     await expect(useCase.execute(command)).rejects.toThrow(RepositoryAlreadyExistsError);
   });
 
   it('marks repository as FAILED when GitHub API throws and audits failure', async () => {
-    mockRepoRepo.existsByServiceId.mockResolvedValue(false);
+    mockRepoRepo.findByServiceId.mockResolvedValue(null);
     mockRepoRepo.create.mockResolvedValue(activeRepo);
     mockGithubClient.createRepository.mockRejectedValue(new Error('GitHub API error'));
     mockRepoRepo.updateStatus.mockResolvedValue(undefined);
@@ -96,7 +97,7 @@ describe('ProvisionRepositoryUseCase', () => {
   });
 
   it('handles non-Error exceptions gracefully when provisioning fails', async () => {
-    mockRepoRepo.existsByServiceId.mockResolvedValue(false);
+    mockRepoRepo.findByServiceId.mockResolvedValue(null);
     mockRepoRepo.create.mockResolvedValue(activeRepo);
     mockGithubClient.createRepository.mockRejectedValue('String error message');
     mockRepoRepo.updateStatus.mockResolvedValue(undefined);
@@ -107,5 +108,29 @@ describe('ProvisionRepositoryUseCase', () => {
     expect(mockRepoRepo.updateStatus).toHaveBeenCalledWith(
       activeRepo.id, RepositoryStatus.FAILED, 'String error message',
     );
+  });
+
+  it('allows retrying provisioning if previous attempt failed', async () => {
+    const failedRepo = new Repository({ ...activeRepo, status: RepositoryStatus.FAILED, errorMessage: 'GitHub error' });
+    mockRepoRepo.findByServiceId.mockResolvedValue(failedRepo);
+    mockRepoRepo.update.mockResolvedValue(activeRepo);
+    mockGithubClient.createRepository.mockResolvedValue({
+      fullName: 'org/my-api', htmlUrl: 'https://github.com/org/my-api',
+      cloneUrl: 'https://github.com/org/my-api.git', sshUrl: 'git@github.com:org/my-api.git',
+      defaultBranch: 'main',
+    });
+    mockGithubClient.createOrUpdateFile.mockResolvedValue(undefined);
+    mockGithubClient.configureBranchProtection.mockResolvedValue(undefined);
+    mockAudit.publish.mockResolvedValue(undefined);
+
+    const result = await useCase.execute(command);
+
+    expect(mockRepoRepo.update).toHaveBeenCalledWith(failedRepo.id, expect.objectContaining({
+      status: RepositoryStatus.PROVISIONING,
+      githubOwner: command.githubOwner,
+      githubRepo: command.serviceName,
+    }));
+    expect(mockRepoRepo.updateStatus).toHaveBeenCalledWith(failedRepo.id, RepositoryStatus.ACTIVE);
+    expect(result.id).toBe(activeRepo.id);
   });
 });
