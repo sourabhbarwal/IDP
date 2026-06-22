@@ -7,7 +7,8 @@
     "common",
     "auth-service",
     "service-catalog-service",
-    "repository-service"
+    "repository-service",
+    "template-service"
   ],
   "engines": { "node": ">=20.0.0" },
   "scripts": {

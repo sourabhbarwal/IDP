@@ -101,23 +101,23 @@ export default function DashboardPage() {
 
         {/* Upcoming modules placeholder */}
         {/* Quick Navigation */}
+        {/* Quick Navigation */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <Link
-            to="/catalog"
-            className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 hover:border-primary-300 hover:shadow-md transition-all group"
-          >
+          <Link to="/catalog"
+            className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 hover:border-primary-300 hover:shadow-md transition-all group">
             <div className="text-3xl mb-3">📦</div>
             <h3 className="font-semibold text-gray-800 group-hover:text-primary-600">Service Catalog</h3>
             <p className="text-sm text-gray-500 mt-1">Browse and manage platform services</p>
             <p className="text-xs text-primary-600 mt-3 font-medium">Open →</p>
           </Link>
 
-          <div className="bg-white rounded-2xl shadow-sm border border-dashed border-gray-200 p-6 opacity-60">
-            <div className="text-3xl mb-3">🚀</div>
-            <h3 className="font-semibold text-gray-800">Deployments</h3>
-            <p className="text-sm text-gray-500 mt-1">Deploy & rollback services</p>
-            <span className="inline-block mt-3 text-xs px-2 py-0.5 rounded bg-gray-100 text-gray-500">Phase 6</span>
-          </div>
+          <Link to="/templates"
+            className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 hover:border-primary-300 hover:shadow-md transition-all group">
+            <div className="text-3xl mb-3">🏗️</div>
+            <h3 className="font-semibold text-gray-800 group-hover:text-primary-600">Project Templates</h3>
+            <p className="text-sm text-gray-500 mt-1">Generate Node.js, FastAPI, Go, Spring Boot projects</p>
+            <p className="text-xs text-primary-600 mt-3 font-medium">Open →</p>
+          </Link>
 
           <div className="bg-white rounded-2xl shadow-sm border border-dashed border-gray-200 p-6 opacity-60">
             <div className="text-3xl mb-3">🤖</div>

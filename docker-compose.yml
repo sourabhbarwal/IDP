@@ -112,6 +112,21 @@ services:
       GITHUB_TOKEN: ${GITHUB_TOKEN:-}
       GITHUB_OWNER: ${GITHUB_OWNER:-your-github-username}
 
+  template-service:
+    build:
+      context: .
+      dockerfile: backend/template-service/Dockerfile
+    container_name: idp-template-service
+    restart: unless-stopped
+    ports:
+      - "3004:3004"
+    environment:
+      NODE_ENV: development
+      PORT: 3004
+      JWT_SECRET: local-dev-only-secret-change-in-production
+      JWT_ISSUER: idp-platform
+      ALLOWED_ORIGINS: http://localhost:5173
+
 volumes:
   postgres_data:
   redis_data:

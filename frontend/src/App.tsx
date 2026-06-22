@@ -7,6 +7,7 @@ import DashboardPage from './pages/dashboard/DashboardPage';
 import ServiceListPage from './pages/catalog/ServiceListPage';
 import CreateServicePage from './pages/catalog/CreateServicePage';
 import ServiceDetailPage from './pages/catalog/ServiceDetailPage';
+import TemplateGalleryPage from './pages/templates/TemplateGalleryPage';
 import ProtectedRoute from './components/layout/ProtectedRoute';
 
 export default function App() {
@@ -20,6 +21,7 @@ export default function App() {
           <Route path="/catalog" element={<ProtectedRoute><ServiceListPage /></ProtectedRoute>} />
           <Route path="/catalog/new" element={<ProtectedRoute><CreateServicePage /></ProtectedRoute>} />
           <Route path="/catalog/:id" element={<ProtectedRoute><ServiceDetailPage /></ProtectedRoute>} />
+          <Route path="/templates" element={<ProtectedRoute><TemplateGalleryPage /></ProtectedRoute>} />
           <Route path="*" element={<Navigate to="/login" replace />} />
         </Routes>
       </BrowserRouter>
