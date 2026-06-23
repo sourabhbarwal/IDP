@@ -11,6 +11,13 @@ RUN npm run build --workspace=repository-service
 RUN npm prune --omit=dev --workspaces
 
 FROM node:20-alpine AS production
+ARG BUILD_REVISION=unknown
+ARG BUILD_DATE=unknown
+LABEL org.opencontainers.image.title="IDP Platform - Repository Service" \
+      org.opencontainers.image.description="Repository Service" \
+      org.opencontainers.image.vendor="IDP Platform" \
+      org.opencontainers.image.revision="${BUILD_REVISION}" \
+      org.opencontainers.image.created="${BUILD_DATE}"
 RUN addgroup -S idp && adduser -S idp -G idp
 WORKDIR /app
 COPY --from=builder --chown=idp:idp /app/node_modules ./node_modules

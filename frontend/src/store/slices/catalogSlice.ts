@@ -1,6 +1,6 @@
 import { createAsyncThunk, createSlice } from '@reduxjs/toolkit';
 import { catalogService, CreateServicePayload, ListServicesParams, UpdateServicePayload } from '../../services/catalog.service';
-import { CatalogService, PageResponse } from '../../types/catalog.types';
+import { CatalogService } from '../../types/catalog.types';
 
 interface CatalogState {
   services: CatalogService[];

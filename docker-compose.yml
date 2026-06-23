@@ -1,6 +1,16 @@
 version: "3.9"
 
+# ─────────────────────────────────────────────────────────────────────────────
+# IDP Platform — Complete Local Development Stack
+# Usage:
+#   docker compose up -d                    # start all
+#   docker compose up -d auth-service       # start specific service
+#   docker compose logs -f auth-service     # tail logs
+#   docker compose down -v                  # stop + remove volumes
+# ─────────────────────────────────────────────────────────────────────────────
+
 services:
+  # ── Infrastructure ──────────────────────────────────────────────────────────
   postgres:
     image: postgres:16-alpine
     container_name: idp-postgres
@@ -23,6 +33,7 @@ services:
     image: redis:7-alpine
     container_name: idp-redis
     restart: unless-stopped
+    command: redis-server --appendonly yes
     ports:
       - "6379:6379"
     volumes:
@@ -33,10 +44,13 @@ services:
       timeout: 5s
       retries: 5
 
+  # ── Phase 1: Auth ───────────────────────────────────────────────────────────
   auth-service:
     build:
       context: .
       dockerfile: backend/auth-service/Dockerfile
+      args:
+        BUILD_REVISION: local
     container_name: idp-auth-service
     restart: unless-stopped
     depends_on:
@@ -60,11 +74,19 @@ services:
       JWT_REFRESH_TOKEN_TTL_SECONDS: 604800
       JWT_ISSUER: idp-platform
       ALLOWED_ORIGINS: http://localhost:5173
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:3001/health || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
 
+  # ── Phase 2: Service Catalog ─────────────────────────────────────────────────
   service-catalog-service:
     build:
       context: .
       dockerfile: backend/service-catalog-service/Dockerfile
+      args:
+        BUILD_REVISION: local
     container_name: idp-service-catalog
     restart: unless-stopped
     depends_on:
@@ -84,11 +106,19 @@ services:
       JWT_SECRET: local-dev-only-secret-change-in-production
       JWT_ISSUER: idp-platform
       ALLOWED_ORIGINS: http://localhost:5173
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:3002/health || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
 
+  # ── Phase 3: Repository ──────────────────────────────────────────────────────
   repository-service:
     build:
       context: .
       dockerfile: backend/repository-service/Dockerfile
+      args:
+        BUILD_REVISION: local
     container_name: idp-repository-service
     restart: unless-stopped
     depends_on:
@@ -108,14 +138,21 @@ services:
       JWT_SECRET: local-dev-only-secret-change-in-production
       JWT_ISSUER: idp-platform
       ALLOWED_ORIGINS: http://localhost:5173
-      # Set your real GitHub token here for local dev
       GITHUB_TOKEN: ${GITHUB_TOKEN:-}
       GITHUB_OWNER: ${GITHUB_OWNER:-your-github-username}
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:3003/health || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
 
+  # ── Phase 4: Template Engine ─────────────────────────────────────────────────
   template-service:
     build:
       context: .
       dockerfile: backend/template-service/Dockerfile
+      args:
+        BUILD_REVISION: local
     container_name: idp-template-service
     restart: unless-stopped
     ports:
@@ -126,6 +163,153 @@ services:
       JWT_SECRET: local-dev-only-secret-change-in-production
       JWT_ISSUER: idp-platform
       ALLOWED_ORIGINS: http://localhost:5173
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:3004/health || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  # ── Phase 5 stubs (full implementation in Phase 6–9) ────────────────────────
+  deployment-service:
+    build:
+      context: .
+      dockerfile: backend/deployment-service/Dockerfile
+      args:
+        BUILD_REVISION: local
+    container_name: idp-deployment-service
+    restart: unless-stopped
+    ports:
+      - "3005:3005"
+    environment:
+      NODE_ENV: development
+      PORT: 3005
+      JWT_SECRET: local-dev-only-secret-change-in-production
+      JWT_ISSUER: idp-platform
+    profiles: ["stubs"]  # only starts with: docker compose --profile stubs up
+
+  monitoring-service:
+    build:
+      context: .
+      dockerfile: backend/monitoring-service/Dockerfile
+      args:
+        BUILD_REVISION: local
+    container_name: idp-monitoring-service
+    restart: unless-stopped
+    ports:
+      - "3006:3006"
+    environment:
+      NODE_ENV: development
+      PORT: 3006
+      JWT_SECRET: local-dev-only-secret-change-in-production
+      JWT_ISSUER: idp-platform
+    profiles: ["stubs"]
+
+  logging-service:
+    build:
+      context: .
+      dockerfile: backend/logging-service/Dockerfile
+      args:
+        BUILD_REVISION: local
+    container_name: idp-logging-service
+    restart: unless-stopped
+    ports:
+      - "3007:3007"
+    environment:
+      NODE_ENV: development
+      PORT: 3007
+      JWT_SECRET: local-dev-only-secret-change-in-production
+      JWT_ISSUER: idp-platform
+    profiles: ["stubs"]
+
+  alert-service:
+    build:
+      context: .
+      dockerfile: backend/alert-service/Dockerfile
+      args:
+        BUILD_REVISION: local
+    container_name: idp-alert-service
+    restart: unless-stopped
+    ports:
+      - "3008:3008"
+    environment:
+      NODE_ENV: development
+      PORT: 3008
+      JWT_SECRET: local-dev-only-secret-change-in-production
+      JWT_ISSUER: idp-platform
+    profiles: ["stubs"]
+
+  notification-service:
+    build:
+      context: .
+      dockerfile: backend/notification-service/Dockerfile
+      args:
+        BUILD_REVISION: local
+    container_name: idp-notification-service
+    restart: unless-stopped
+    ports:
+      - "3009:3009"
+    environment:
+      NODE_ENV: development
+      PORT: 3009
+      JWT_SECRET: local-dev-only-secret-change-in-production
+      JWT_ISSUER: idp-platform
+    profiles: ["stubs"]
+
+  audit-service:
+    build:
+      context: .
+      dockerfile: backend/audit-service/Dockerfile
+      args:
+        BUILD_REVISION: local
+    container_name: idp-audit-service
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "3010:3010"
+    environment:
+      NODE_ENV: development
+      PORT: 3010
+      JWT_SECRET: local-dev-only-secret-change-in-production
+      JWT_ISSUER: idp-platform
+    profiles: ["stubs"]
+
+  cost-service:
+    build:
+      context: .
+      dockerfile: backend/cost-service/Dockerfile
+      args:
+        BUILD_REVISION: local
+    container_name: idp-cost-service
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "3011:3011"
+    environment:
+      NODE_ENV: development
+      PORT: 3011
+      JWT_SECRET: local-dev-only-secret-change-in-production
+      JWT_ISSUER: idp-platform
+    profiles: ["stubs"]
+
+  # ── Frontend ─────────────────────────────────────────────────────────────────
+  frontend:
+    build:
+      context: frontend
+      dockerfile: Dockerfile
+      args:
+        BUILD_REVISION: local
+    container_name: idp-frontend
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    depends_on:
+      - auth-service
+      - service-catalog-service
+    profiles: ["full"]  # use npm run dev locally; docker for staging/prod
 
 volumes:
   postgres_data:

@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../../hooks/redux';
 import { fetchServices, deleteService } from '../../store/slices/catalogSlice';
-import { ServiceType, ServiceStatus } from '../../types/catalog.types';
+import { ServiceType } from '../../types/catalog.types';
 
 const TYPE_COLORS: Record<string, string> = {
   NODEJS: 'bg-green-100 text-green-700',

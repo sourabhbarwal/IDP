@@ -44,7 +44,7 @@ export const login = createAsyncThunk(
   },
 );
 
-export const logout = createAsyncThunk('auth/logout', async (_, { getState, rejectWithValue }) => {
+export const logout = createAsyncThunk('auth/logout', async () => {
   try {
     const refreshToken = localStorage.getItem('refreshToken');
     if (refreshToken) {

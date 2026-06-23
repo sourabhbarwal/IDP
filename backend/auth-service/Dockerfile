@@ -31,7 +31,13 @@ FROM node:20-alpine AS production
 
 # Security: run as non-root user
 RUN addgroup -S idp && adduser -S idp -G idp
-
+ARG BUILD_REVISION=unknown
+ARG BUILD_DATE=unknown
+LABEL org.opencontainers.image.title="IDP Platform - Auth Service" \
+      org.opencontainers.image.description="Identity, Authentication, RBAC" \
+      org.opencontainers.image.vendor="IDP Platform" \
+      org.opencontainers.image.revision="${BUILD_REVISION}" \
+      org.opencontainers.image.created="${BUILD_DATE}"
 WORKDIR /app
 
 # Copy only the compiled output and production node_modules
