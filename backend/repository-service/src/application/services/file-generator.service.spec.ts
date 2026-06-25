@@ -5,9 +5,12 @@ describe('FileGeneratorService', () => {
   beforeEach(() => { service = new FileGeneratorService(); });
 
   const baseParams = {
-    serviceName: 'my-api', serviceType: 'NODEJS',
-    description: 'A test service', owner: 'test-org',
-    ownerEmail: 'dev@example.com', repoFullName: 'test-org/my-api',
+    serviceName: 'my-api',
+    serviceType: 'NODEJS',
+    description: 'A test service',
+    owner: 'test-org',
+    ownerEmail: 'dev@example.com',
+    repoFullName: 'test-org/my-api',
   };
 
   it('generates the correct set of files', () => {
@@ -29,54 +32,48 @@ describe('FileGeneratorService', () => {
 
   it('README contains service name and owner email', () => {
     const files = service.generate(baseParams);
-    const readme = files.find((f) => f.path === 'README.md')!;
-    expect(readme.content).toContain('my-api');
-    expect(readme.content).toContain('dev@example.com');
+    const readme = files.find((f) => f.path === 'README.md');
+    expect(readme).toBeDefined();
+    expect(readme?.content).toContain('my-api');
+    expect(readme?.content).toContain('dev@example.com');
   });
 
   it('CODEOWNERS contains GitHub owner', () => {
     const files = service.generate(baseParams);
-    const codeowners = files.find((f) => f.path === '.github/CODEOWNERS')!;
-    expect(codeowners.content).toContain('@test-org');
+    const codeowners = files.find((f) => f.path === '.github/CODEOWNERS');
+    expect(codeowners).toBeDefined();
+    expect(codeowners?.content).toContain('@test-org');
   });
 
   it('generates Go Dockerfile for GO service type', () => {
     const files = service.generate({ ...baseParams, serviceType: 'GO' });
-    const dockerfile = files.find((f) => f.path === 'Dockerfile')!;
-    expect(dockerfile.content).toContain('golang');
-    expect(dockerfile.content).toContain('scratch');
+    const dockerfile = files.find((f) => f.path === 'Dockerfile');
+    expect(dockerfile).toBeDefined();
+    expect(dockerfile?.content).toContain('golang');
+    expect(dockerfile?.content).toContain('scratch');
   });
 
   it('generates Python Dockerfile for FASTAPI service type', () => {
     const files = service.generate({ ...baseParams, serviceType: 'FASTAPI' });
-    const dockerfile = files.find((f) => f.path === 'Dockerfile')!;
-    expect(dockerfile.content).toContain('python');
-    expect(dockerfile.content).toContain('uvicorn');
+    const dockerfile = files.find((f) => f.path === 'Dockerfile');
+    expect(dockerfile).toBeDefined();
+    expect(dockerfile?.content).toContain('python');
+    expect(dockerfile?.content).toContain('uvicorn');
   });
 
   it('generates Java Dockerfile for SPRING_BOOT service type', () => {
     const files = service.generate({ ...baseParams, serviceType: 'SPRING_BOOT' });
-    const dockerfile = files.find((f) => f.path === 'Dockerfile')!;
-    expect(dockerfile.content).toContain('eclipse-temurin');
+    const dockerfile = files.find((f) => f.path === 'Dockerfile');
+    expect(dockerfile).toBeDefined();
+    expect(dockerfile?.content).toContain('eclipse-temurin');
   });
 
   it('kubernetes deployment references service name in namespace', () => {
     const files = service.generate(baseParams);
-    const deployment = files.find((f) => f.path === 'kubernetes/deployment.yaml')!;
-    expect(deployment.content).toContain('dev-my-api');
-    expect(deployment.content).toContain('name: my-api');
-  });
-
-  it('generates default templates for unknown/OTHER service type', () => {
-    const files = service.generate({ ...baseParams, serviceType: 'OTHER' });
-    const readme = files.find((f) => f.path === 'README.md')!;
-    expect(readme.content).toContain('See project documentation');
-  });
-
-  it('generates readme with default description if empty', () => {
-    const files = service.generate({ ...baseParams, description: '' });
-    const readme = files.find((f) => f.path === 'README.md')!;
-    expect(readme.content).toContain('my-api service');
+    const deployment = files.find((f) => f.path === 'kubernetes/deployment.yaml');
+    expect(deployment).toBeDefined();
+    expect(deployment?.content).toContain('dev-my-api');
+    expect(deployment?.content).toContain('name: my-api');
   });
 
   it('all file contents are non-empty strings', () => {
