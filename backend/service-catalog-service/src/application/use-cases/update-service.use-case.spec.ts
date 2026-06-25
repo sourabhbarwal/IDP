@@ -1,4 +1,4 @@
-import { DeleteServiceUseCase } from './delete-service.use-case';
+import { UpdateServiceUseCase } from './update-service.use-case';
 import {
   ServiceAccessDeniedError,
   ServiceNotFoundError,
@@ -12,12 +12,12 @@ import { AuditPublisher } from '@idp/common';
 function makeService(ownerId = 'u-1'): Service {
   return new Service({
     id: 's-1',
-    name: 'svc',
-    description: null,
+    name: 'my-service',
+    description: 'original',
     type: ServiceType.NODEJS,
     status: ServiceStatus.ACTIVE,
     ownerId,
-    ownerEmail: 'a@b.com',
+    ownerEmail: 'owner@example.com',
     team: null,
     repositoryUrl: null,
     tags: [],
@@ -31,47 +31,80 @@ function makeService(ownerId = 'u-1'): Service {
 
 const mockRepo: jest.Mocked<ServiceRepository> = {
   findById: jest.fn(),
-  softDelete: jest.fn(),
   findByName: jest.fn(),
   existsByName: jest.fn(),
   list: jest.fn(),
   create: jest.fn(),
   update: jest.fn(),
+  softDelete: jest.fn(),
 };
 
 const mockAudit: jest.Mocked<AuditPublisher> = {
   publish: jest.fn(),
 };
 
-describe('DeleteServiceUseCase', () => {
-  let useCase: DeleteServiceUseCase;
+describe('UpdateServiceUseCase', () => {
+  let useCase: UpdateServiceUseCase;
 
   beforeEach(() => {
     jest.clearAllMocks();
-    useCase = new DeleteServiceUseCase(mockRepo, mockAudit);
+    useCase = new UpdateServiceUseCase(mockRepo, mockAudit);
   });
 
-  it('deletes service when actor is the owner', async () => {
+  it('updates service when actor is the owner', async () => {
+    const updated = makeService('u-1');
     mockRepo.findById.mockResolvedValue(makeService('u-1'));
-    mockRepo.softDelete.mockResolvedValue(undefined);
+    mockRepo.update.mockResolvedValue(updated);
     mockAudit.publish.mockResolvedValue(undefined);
 
-    await useCase.execute({ id: 's-1', actorId: 'u-1', actorRoles: ['DEVELOPER'], ipAddress: null });
+    const result = await useCase.execute({
+      id: 's-1',
+      description: 'updated description',
+      actorId: 'u-1',
+      actorRoles: ['DEVELOPER'],
+      ipAddress: null,
+    });
 
-    expect(mockRepo.softDelete).toHaveBeenCalledWith('s-1');
+    expect(mockRepo.update).toHaveBeenCalledWith(
+      's-1',
+      expect.objectContaining({ description: 'updated description', updatedBy: 'u-1' }),
+    );
+    expect(result).toBe(updated);
     expect(mockAudit.publish).toHaveBeenCalledWith(
-      expect.objectContaining({ result: 'SUCCESS' }),
+      expect.objectContaining({ action: 'SERVICE_UPDATE', result: 'SUCCESS' }),
     );
   });
 
-  it('deletes service when actor is ORG_ADMIN', async () => {
+  it('updates service when actor is ORG_ADMIN (not owner)', async () => {
+    const updated = makeService('other-user');
     mockRepo.findById.mockResolvedValue(makeService('other-user'));
-    mockRepo.softDelete.mockResolvedValue(undefined);
+    mockRepo.update.mockResolvedValue(updated);
     mockAudit.publish.mockResolvedValue(undefined);
 
-    await useCase.execute({ id: 's-1', actorId: 'admin-1', actorRoles: ['ORG_ADMIN'], ipAddress: null });
+    await useCase.execute({
+      id: 's-1',
+      actorId: 'admin-1',
+      actorRoles: ['ORG_ADMIN'],
+      ipAddress: null,
+    });
 
-    expect(mockRepo.softDelete).toHaveBeenCalled();
+    expect(mockRepo.update).toHaveBeenCalled();
+  });
+
+  it('updates service when actor is PLATFORM_ENGINEER', async () => {
+    const updated = makeService('other-user');
+    mockRepo.findById.mockResolvedValue(makeService('other-user'));
+    mockRepo.update.mockResolvedValue(updated);
+    mockAudit.publish.mockResolvedValue(undefined);
+
+    await useCase.execute({
+      id: 's-1',
+      actorId: 'pe-1',
+      actorRoles: ['PLATFORM_ENGINEER'],
+      ipAddress: null,
+    });
+
+    expect(mockRepo.update).toHaveBeenCalled();
   });
 
   it('throws ServiceNotFoundError when service does not exist', async () => {
@@ -82,7 +115,7 @@ describe('DeleteServiceUseCase', () => {
     ).rejects.toThrow(ServiceNotFoundError);
   });
 
-  it('throws ServiceAccessDeniedError when non-owner DEVELOPER tries to delete', async () => {
+  it('throws ServiceAccessDeniedError when non-owner DEVELOPER tries to update', async () => {
     mockRepo.findById.mockResolvedValue(makeService('other'));
     mockAudit.publish.mockResolvedValue(undefined);
 

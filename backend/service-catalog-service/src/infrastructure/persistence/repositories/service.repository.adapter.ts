@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { ILike, In, Repository } from 'typeorm';
+import { ILike, Repository } from 'typeorm';
 import { Service } from '../../../domain/entities/service.entity';
 import { ServiceType } from '../../../domain/enums/service-type.enum';
 import { ServiceStatus } from '../../../domain/enums/service-status.enum';
@@ -10,11 +10,13 @@ import {
   ServiceRepository,
 } from '../../../domain/repositories/service.repository.port';
 import { ServiceOrmEntity } from '../orm-entities/service.orm-entity';
-import { toDomainService } from './entity-mapper';
+import { toDomainService } from './entity-mappers';
 
 @Injectable()
 export class ServiceRepositoryAdapter implements ServiceRepository {
-  constructor(@InjectRepository(ServiceOrmEntity) private readonly repo: Repository<ServiceOrmEntity>) {}
+  constructor(
+    @InjectRepository(ServiceOrmEntity) private readonly repo: Repository<ServiceOrmEntity>,
+  ) {}
 
   async findById(id: string): Promise<Service | null> {
     const e = await this.repo.findOne({ where: { id }, relations: { versions: true } });
@@ -50,19 +52,37 @@ export class ServiceRepositoryAdapter implements ServiceRepository {
   }
 
   async create(params: {
-    name: string; description: string | null; type: ServiceType;
-    team: string | null; repositoryUrl: string | null; tags: string[];
-    ownerId: string; ownerEmail: string; createdBy: string;
+    name: string;
+    description: string | null;
+    type: ServiceType;
+    team: string | null;
+    repositoryUrl: string | null;
+    tags: string[];
+    ownerId: string;
+    ownerEmail: string;
+    createdBy: string;
   }): Promise<Service> {
-    const entity = this.repo.create({ ...params, status: ServiceStatus.ACTIVE, versions: [] });
+    const entity = this.repo.create({
+      ...params,
+      status: ServiceStatus.ACTIVE,
+      versions: [],
+    });
     const saved = await this.repo.save(entity);
     return toDomainService(saved);
   }
 
-  async update(id: string, params: {
-    description?: string | null; type?: ServiceType; status?: ServiceStatus;
-    team?: string | null; repositoryUrl?: string | null; tags?: string[]; updatedBy: string;
-  }): Promise<Service> {
+  async update(
+    id: string,
+    params: {
+      description?: string | null;
+      type?: ServiceType;
+      status?: ServiceStatus;
+      team?: string | null;
+      repositoryUrl?: string | null;
+      tags?: string[];
+      updatedBy: string;
+    },
+  ): Promise<Service> {
     const updates: Partial<ServiceOrmEntity> = { updatedBy: params.updatedBy };
     if (params.description !== undefined) updates.description = params.description;
     if (params.type !== undefined) updates.type = params.type;
@@ -72,7 +92,10 @@ export class ServiceRepositoryAdapter implements ServiceRepository {
     if (params.tags !== undefined) updates.tags = params.tags;
 
     await this.repo.update({ id }, updates);
-    const updated = await this.repo.findOneOrFail({ where: { id }, relations: { versions: true } });
+    const updated = await this.repo.findOneOrFail({
+      where: { id },
+      relations: { versions: true },
+    });
     return toDomainService(updated);
   }
 

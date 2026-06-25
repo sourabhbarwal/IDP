@@ -5,6 +5,6 @@ module.exports = {
   extends: ['plugin:@typescript-eslint/recommended', 'prettier'],
   root: true,
   env: { node: true, jest: true },
-  ignorePatterns: ['.eslintrc.js', 'dist/**'],
+  ignorePatterns: ['.eslintrc.js', 'dist/**', 'coverage/**'],
   rules: { '@typescript-eslint/no-explicit-any': 'warn', '@typescript-eslint/no-unused-vars': ['warn', { argsIgnorePattern: '^_' }] },
 };

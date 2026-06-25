@@ -1,6 +1,8 @@
 import { LogoutUseCase } from './logout.use-case';
 import { RefreshToken } from '../../domain/entities/refresh-token.entity';
 import { hashToken } from './hash-token.util';
+import { RefreshTokenRepository } from '../../domain/repositories/refresh-token.repository.port';
+import { AuditPublisher } from '@idp/common';
 
 const PLAIN_TOKEN = 'some-plain-refresh-token-value';
 
@@ -17,20 +19,23 @@ function makeToken(revokedAt: Date | null = null): RefreshToken {
   });
 }
 
-const mockRefreshRepo = {
+const mockRefreshRepo: jest.Mocked<RefreshTokenRepository> = {
   findByTokenHash: jest.fn(),
+  create: jest.fn(),
   revoke: jest.fn(),
   revokeAllForUser: jest.fn(),
-  create: jest.fn(),
 };
-const mockAudit = { publish: jest.fn() };
+
+const mockAudit: jest.Mocked<AuditPublisher> = {
+  publish: jest.fn(),
+};
 
 describe('LogoutUseCase', () => {
   let useCase: LogoutUseCase;
 
   beforeEach(() => {
     jest.clearAllMocks();
-    useCase = new LogoutUseCase(mockRefreshRepo as any, mockAudit as any);
+    useCase = new LogoutUseCase(mockRefreshRepo, mockAudit);
   });
 
   it('revokes an active refresh token and publishes LOGOUT audit event', async () => {

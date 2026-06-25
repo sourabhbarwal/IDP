@@ -3,25 +3,38 @@ import { RepositoryNotFoundError } from '../../domain/exceptions/domain-exceptio
 import { Repository } from '../../domain/entities/repository.entity';
 import { RepositoryStatus } from '../../domain/enums/repository-status.enum';
 import { RepositoryVisibility } from '../../domain/enums/repository-visibility.enum';
+import { RepositoryRepository } from '../../domain/repositories/repository.repository.port';
 
-const mockRepo = new Repository({
-  id: 'r-1', serviceId: 's-1', serviceName: 'my-api', serviceType: 'NODEJS',
-  githubOwner: 'org', githubRepo: 'my-api', fullName: 'org/my-api',
-  defaultBranch: 'main', htmlUrl: 'https://github.com/org/my-api',
-  cloneUrl: 'https://github.com/org/my-api.git', sshUrl: 'git@github.com:org/my-api.git',
-  visibility: RepositoryVisibility.PRIVATE, status: RepositoryStatus.ACTIVE,
-  provisionedBy: 'u-1', provisionedAt: new Date(), errorMessage: null,
-  createdAt: new Date(), updatedAt: new Date(),
-});
+function makeRepo(): Repository {
+  return new Repository({
+    id: 'r-1',
+    serviceId: 's-1',
+    serviceName: 'my-service',
+    serviceType: 'NODEJS',
+    githubOwner: 'test-org',
+    githubRepo: 'my-service',
+    fullName: 'test-org/my-service',
+    defaultBranch: 'main',
+    htmlUrl: 'https://github.com/test-org/my-service',
+    cloneUrl: 'https://github.com/test-org/my-service.git',
+    sshUrl: 'git@github.com:test-org/my-service.git',
+    visibility: RepositoryVisibility.PRIVATE,
+    status: RepositoryStatus.ACTIVE,
+    provisionedBy: 'u-1',
+    provisionedAt: new Date(),
+    errorMessage: null,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  });
+}
 
-const mockRepoRepo = {
+const mockRepo: jest.Mocked<RepositoryRepository> = {
   findById: jest.fn(),
   findByServiceId: jest.fn(),
+  findAll: jest.fn(),
   existsByServiceId: jest.fn(),
   create: jest.fn(),
-  findAll: jest.fn(),
   updateStatus: jest.fn(),
-  update: jest.fn(),
 };
 
 describe('GetRepositoryUseCase', () => {
@@ -29,34 +42,38 @@ describe('GetRepositoryUseCase', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    useCase = new GetRepositoryUseCase(mockRepoRepo as any);
+    useCase = new GetRepositoryUseCase(mockRepo);
   });
 
   describe('executeById', () => {
-    it('returns repository when found', async () => {
-      mockRepoRepo.findById.mockResolvedValue(mockRepo);
+    it('returns repository when found by id', async () => {
+      const repo = makeRepo();
+      mockRepo.findById.mockResolvedValue(repo);
+
       const result = await useCase.executeById('r-1');
-      expect(result).toBe(mockRepo);
-      expect(mockRepoRepo.findById).toHaveBeenCalledWith('r-1');
+      expect(result).toBe(repo);
+      expect(mockRepo.findById).toHaveBeenCalledWith('r-1');
     });
 
-    it('throws RepositoryNotFoundError when not found', async () => {
-      mockRepoRepo.findById.mockResolvedValue(null);
-      await expect(useCase.executeById('r-1')).rejects.toThrow(RepositoryNotFoundError);
+    it('throws RepositoryNotFoundError when not found by id', async () => {
+      mockRepo.findById.mockResolvedValue(null);
+      await expect(useCase.executeById('bad-id')).rejects.toThrow(RepositoryNotFoundError);
     });
   });
 
   describe('executeByServiceId', () => {
-    it('returns repository when found by service ID', async () => {
-      mockRepoRepo.findByServiceId.mockResolvedValue(mockRepo);
+    it('returns repository when found by serviceId', async () => {
+      const repo = makeRepo();
+      mockRepo.findByServiceId.mockResolvedValue(repo);
+
       const result = await useCase.executeByServiceId('s-1');
-      expect(result).toBe(mockRepo);
-      expect(mockRepoRepo.findByServiceId).toHaveBeenCalledWith('s-1');
+      expect(result).toBe(repo);
+      expect(mockRepo.findByServiceId).toHaveBeenCalledWith('s-1');
     });
 
-    it('throws RepositoryNotFoundError when not found by service ID', async () => {
-      mockRepoRepo.findByServiceId.mockResolvedValue(null);
-      await expect(useCase.executeByServiceId('s-1')).rejects.toThrow(RepositoryNotFoundError);
+    it('throws RepositoryNotFoundError when not found by serviceId', async () => {
+      mockRepo.findByServiceId.mockResolvedValue(null);
+      await expect(useCase.executeByServiceId('bad-id')).rejects.toThrow(RepositoryNotFoundError);
     });
   });
 });

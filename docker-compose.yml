@@ -1,16 +1,18 @@
 version: "3.9"
 
 # ─────────────────────────────────────────────────────────────────────────────
-# IDP Platform — Complete Local Development Stack
+# IDP Platform — Local Development Stack (No AWS, all free)
+#
 # Usage:
-#   docker compose up -d                    # start all
-#   docker compose up -d auth-service       # start specific service
-#   docker compose logs -f auth-service     # tail logs
-#   docker compose down -v                  # stop + remove volumes
+#   docker compose up -d                          # core 4 services
+#   docker compose --profile stubs up -d          # add all 7 stub services
+#   docker compose --profile full up -d           # add frontend container
+#   docker compose logs -f auth-service           # tail service logs
+#   docker compose down -v                        # stop + delete volumes
 # ─────────────────────────────────────────────────────────────────────────────
 
 services:
-  # ── Infrastructure ──────────────────────────────────────────────────────────
+  # ── Infrastructure ───────────────────────────────────────────────────────────
   postgres:
     image: postgres:16-alpine
     container_name: idp-postgres
@@ -44,13 +46,14 @@ services:
       timeout: 5s
       retries: 5
 
-  # ── Phase 1: Auth ───────────────────────────────────────────────────────────
+  # ── Phase 1: Auth ─────────────────────────────────────────────────────────────
   auth-service:
     build:
       context: .
       dockerfile: backend/auth-service/Dockerfile
       args:
         BUILD_REVISION: local
+        BUILD_DATE: "2024-01-01T00:00:00Z"
     container_name: idp-auth-service
     restart: unless-stopped
     depends_on:
@@ -69,7 +72,7 @@ services:
       DB_SCHEMA: auth
       REDIS_HOST: redis
       REDIS_PORT: 6379
-      JWT_SECRET: local-dev-only-secret-change-in-production
+      JWT_SECRET: ***REMOVED***
       JWT_ACCESS_TOKEN_TTL_SECONDS: 900
       JWT_REFRESH_TOKEN_TTL_SECONDS: 604800
       JWT_ISSUER: idp-platform
@@ -80,13 +83,14 @@ services:
       timeout: 5s
       retries: 3
 
-  # ── Phase 2: Service Catalog ─────────────────────────────────────────────────
+  # ── Phase 2: Service Catalog ──────────────────────────────────────────────────
   service-catalog-service:
     build:
       context: .
       dockerfile: backend/service-catalog-service/Dockerfile
       args:
         BUILD_REVISION: local
+        BUILD_DATE: "2024-01-01T00:00:00Z"
     container_name: idp-service-catalog
     restart: unless-stopped
     depends_on:
@@ -103,7 +107,7 @@ services:
       DB_PASSWORD: ***REMOVED***
       DB_NAME: idp
       DB_SCHEMA: catalog
-      JWT_SECRET: local-dev-only-secret-change-in-production
+      JWT_SECRET: ***REMOVED***
       JWT_ISSUER: idp-platform
       ALLOWED_ORIGINS: http://localhost:5173
     healthcheck:
@@ -112,13 +116,14 @@ services:
       timeout: 5s
       retries: 3
 
-  # ── Phase 3: Repository ──────────────────────────────────────────────────────
+  # ── Phase 3: Repository ───────────────────────────────────────────────────────
   repository-service:
     build:
       context: .
       dockerfile: backend/repository-service/Dockerfile
       args:
         BUILD_REVISION: local
+        BUILD_DATE: "2024-01-01T00:00:00Z"
     container_name: idp-repository-service
     restart: unless-stopped
     depends_on:
@@ -135,10 +140,10 @@ services:
       DB_PASSWORD: ***REMOVED***
       DB_NAME: idp
       DB_SCHEMA: repository
-      JWT_SECRET: local-dev-only-secret-change-in-production
+      JWT_SECRET: ***REMOVED***
       JWT_ISSUER: idp-platform
       ALLOWED_ORIGINS: http://localhost:5173
-      GITHUB_TOKEN: ${GITHUB_TOKEN:-}
+      GITHUB_TOKEN: ${GITHUB_TOKEN:-your-github-pat-here}
       GITHUB_OWNER: ${GITHUB_OWNER:-your-github-username}
     healthcheck:
       test: ["CMD-SHELL", "wget -qO- http://localhost:3003/health || exit 1"]
@@ -146,13 +151,14 @@ services:
       timeout: 5s
       retries: 3
 
-  # ── Phase 4: Template Engine ─────────────────────────────────────────────────
+  # ── Phase 4: Template Engine ──────────────────────────────────────────────────
   template-service:
     build:
       context: .
       dockerfile: backend/template-service/Dockerfile
       args:
         BUILD_REVISION: local
+        BUILD_DATE: "2024-01-01T00:00:00Z"
     container_name: idp-template-service
     restart: unless-stopped
     ports:
@@ -160,7 +166,7 @@ services:
     environment:
       NODE_ENV: development
       PORT: 3004
-      JWT_SECRET: local-dev-only-secret-change-in-production
+      JWT_SECRET: ***REMOVED***
       JWT_ISSUER: idp-platform
       ALLOWED_ORIGINS: http://localhost:5173
     healthcheck:
@@ -169,13 +175,14 @@ services:
       timeout: 5s
       retries: 3
 
-  # ── Phase 5 stubs (full implementation in Phase 6–9) ────────────────────────
+  # ── Phase 5 stubs (full implementation Phase 6–9) ─────────────────────────────
   deployment-service:
     build:
       context: .
       dockerfile: backend/deployment-service/Dockerfile
       args:
         BUILD_REVISION: local
+        BUILD_DATE: "2024-01-01T00:00:00Z"
     container_name: idp-deployment-service
     restart: unless-stopped
     ports:
@@ -183,9 +190,14 @@ services:
     environment:
       NODE_ENV: development
       PORT: 3005
-      JWT_SECRET: local-dev-only-secret-change-in-production
+      JWT_SECRET: ***REMOVED***
       JWT_ISSUER: idp-platform
-    profiles: ["stubs"]  # only starts with: docker compose --profile stubs up
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:3005/health || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    profiles: ["stubs"]
 
   monitoring-service:
     build:
@@ -193,6 +205,7 @@ services:
       dockerfile: backend/monitoring-service/Dockerfile
       args:
         BUILD_REVISION: local
+        BUILD_DATE: "2024-01-01T00:00:00Z"
     container_name: idp-monitoring-service
     restart: unless-stopped
     ports:
@@ -200,8 +213,13 @@ services:
     environment:
       NODE_ENV: development
       PORT: 3006
-      JWT_SECRET: local-dev-only-secret-change-in-production
+      JWT_SECRET: ***REMOVED***
       JWT_ISSUER: idp-platform
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:3006/health || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
     profiles: ["stubs"]
 
   logging-service:
@@ -210,6 +228,7 @@ services:
       dockerfile: backend/logging-service/Dockerfile
       args:
         BUILD_REVISION: local
+        BUILD_DATE: "2024-01-01T00:00:00Z"
     container_name: idp-logging-service
     restart: unless-stopped
     ports:
@@ -217,8 +236,13 @@ services:
     environment:
       NODE_ENV: development
       PORT: 3007
-      JWT_SECRET: local-dev-only-secret-change-in-production
+      JWT_SECRET: ***REMOVED***
       JWT_ISSUER: idp-platform
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:3007/health || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
     profiles: ["stubs"]
 
   alert-service:
@@ -227,6 +251,7 @@ services:
       dockerfile: backend/alert-service/Dockerfile
       args:
         BUILD_REVISION: local
+        BUILD_DATE: "2024-01-01T00:00:00Z"
     container_name: idp-alert-service
     restart: unless-stopped
     ports:
@@ -234,8 +259,13 @@ services:
     environment:
       NODE_ENV: development
       PORT: 3008
-      JWT_SECRET: local-dev-only-secret-change-in-production
+      JWT_SECRET: ***REMOVED***
       JWT_ISSUER: idp-platform
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:3008/health || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
     profiles: ["stubs"]
 
   notification-service:
@@ -244,6 +274,7 @@ services:
       dockerfile: backend/notification-service/Dockerfile
       args:
         BUILD_REVISION: local
+        BUILD_DATE: "2024-01-01T00:00:00Z"
     container_name: idp-notification-service
     restart: unless-stopped
     ports:
@@ -251,8 +282,13 @@ services:
     environment:
       NODE_ENV: development
       PORT: 3009
-      JWT_SECRET: local-dev-only-secret-change-in-production
+      JWT_SECRET: ***REMOVED***
       JWT_ISSUER: idp-platform
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:3009/health || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
     profiles: ["stubs"]
 
   audit-service:
@@ -261,18 +297,21 @@ services:
       dockerfile: backend/audit-service/Dockerfile
       args:
         BUILD_REVISION: local
+        BUILD_DATE: "2024-01-01T00:00:00Z"
     container_name: idp-audit-service
     restart: unless-stopped
-    depends_on:
-      postgres:
-        condition: service_healthy
     ports:
       - "3010:3010"
     environment:
       NODE_ENV: development
       PORT: 3010
-      JWT_SECRET: local-dev-only-secret-change-in-production
+      JWT_SECRET: ***REMOVED***
       JWT_ISSUER: idp-platform
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:3010/health || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
     profiles: ["stubs"]
 
   cost-service:
@@ -281,35 +320,43 @@ services:
       dockerfile: backend/cost-service/Dockerfile
       args:
         BUILD_REVISION: local
+        BUILD_DATE: "2024-01-01T00:00:00Z"
     container_name: idp-cost-service
     restart: unless-stopped
-    depends_on:
-      postgres:
-        condition: service_healthy
     ports:
       - "3011:3011"
     environment:
       NODE_ENV: development
       PORT: 3011
-      JWT_SECRET: local-dev-only-secret-change-in-production
+      JWT_SECRET: ***REMOVED***
       JWT_ISSUER: idp-platform
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:3011/health || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
     profiles: ["stubs"]
 
-  # ── Frontend ─────────────────────────────────────────────────────────────────
+  # ── Frontend (use npm run dev locally; docker for testing builds) ─────────────
   frontend:
     build:
       context: frontend
       dockerfile: Dockerfile
       args:
         BUILD_REVISION: local
+        BUILD_DATE: "2024-01-01T00:00:00Z"
     container_name: idp-frontend
     restart: unless-stopped
     ports:
       - "8080:8080"
     depends_on:
       - auth-service
-      - service-catalog-service
-    profiles: ["full"]  # use npm run dev locally; docker for staging/prod
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8080/health || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    profiles: ["full"]
 
 volumes:
   postgres_data:

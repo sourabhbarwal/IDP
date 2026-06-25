@@ -67,12 +67,8 @@
     "moduleFileExtensions": ["js", "json", "ts"],
     "rootDir": "src",
     "testRegex": ".*\\.spec\\.ts$",
-    "testPathIgnorePatterns": [
-      "<rootDir>/integration/"
-    ],
-    "transform": {
-      "^.+\\.ts$": "ts-jest"
-    },
+    "testPathIgnorePatterns": ["<rootDir>/integration/"],
+    "transform": { "^.+\\.ts$": "ts-jest" },
     "moduleNameMapper": {
       "^@idp/common$": "<rootDir>/../../common/src/index.ts"
     },

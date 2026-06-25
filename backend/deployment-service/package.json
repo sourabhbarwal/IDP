@@ -2,7 +2,7 @@
   "name": "@idp/deployment-service",
   "version": "0.1.0",
   "private": true,
-  "description": "IDP Platform - Deployment Engine (rolling, blue-green, canary) — Phase 6",
+  "description": "IDP Platform - Deployment Engine (rolling/blue-green/canary) — Phase 6",
   "scripts": {
     "build": "nest build",
     "start": "nest start",
@@ -21,7 +21,6 @@
     "@nestjs/swagger": "^7.4.0",
     "class-transformer": "^0.5.1",
     "class-validator": "^0.14.1",
-    "dotenv": "^16.4.5",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.1"
   },
@@ -47,7 +46,6 @@
     "testRegex": ".*\\.spec\\.ts$",
     "transform": { "^.+\\.ts$": "ts-jest" },
     "moduleNameMapper": { "^@idp/common$": "<rootDir>/../../common/src/index.ts" },
-    "testEnvironment": "node",
-    "coverageDirectory": "../coverage"
+    "testEnvironment": "node"
   }
 }

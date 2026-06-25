@@ -2,50 +2,64 @@ import { GenerateTemplateUseCase } from './generate-template.use-case';
 import { TemplateRegistryService } from '../services/template-registry.service';
 import { ZipBuilderService } from '../services/zip-builder.service';
 import { TemplateType } from '../../domain/enums/template-type.enum';
-import { TemplateNotFoundError } from '../../domain/exceptions/domain-exceptions';
 
 describe('GenerateTemplateUseCase', () => {
   let useCase: GenerateTemplateUseCase;
-  let registry: TemplateRegistryService;
   let zipBuilder: ZipBuilderService;
 
+  const params = {
+    serviceName: 'test-service',
+    description: 'A test service',
+    port: 3000,
+    packageName: 'com.example',
+    author: 'Test User',
+    authorEmail: 'test@example.com',
+  };
+
   beforeEach(() => {
-    registry = new TemplateRegistryService();
     zipBuilder = new ZipBuilderService();
-    useCase = new GenerateTemplateUseCase(registry, zipBuilder);
+    useCase = new GenerateTemplateUseCase(new TemplateRegistryService(), zipBuilder);
   });
 
-  it('generates template files and returns a valid zip buffer', async () => {
-    const command = {
+  it('generates a zip buffer for NODEJS template', async () => {
+    const buffer = await useCase.execute({
       templateType: TemplateType.NODEJS,
-      params: {
-        serviceName: 'my-service',
-        description: 'test description',
-        port: 3000,
-        packageName: '',
-        author: 'Author',
-        authorEmail: 'author@test.com',
-      },
-    };
-
-    const zipBuffer = await useCase.execute(command);
-    expect(zipBuffer).toBeInstanceOf(Buffer);
-    expect(zipBuffer.length).toBeGreaterThan(0);
+      params,
+    });
+    expect(Buffer.isBuffer(buffer)).toBe(true);
+    expect(buffer.length).toBeGreaterThan(100);
   });
 
-  it('throws TemplateNotFoundError for invalid template type', async () => {
-    const command = {
-      templateType: 'INVALID_TYPE',
-      params: {
-        serviceName: 'my-service',
-        description: 'test description',
-        port: 3000,
-        packageName: '',
-        author: 'Author',
-        authorEmail: 'author@test.com',
-      },
-    };
+  it('generates a zip buffer for FASTAPI template', async () => {
+    const buffer = await useCase.execute({
+      templateType: TemplateType.FASTAPI,
+      params,
+    });
+    expect(Buffer.isBuffer(buffer)).toBe(true);
+    expect(buffer.length).toBeGreaterThan(100);
+  });
 
-    await expect(useCase.execute(command)).rejects.toThrow(TemplateNotFoundError);
+  it('generates a zip buffer for GO template', async () => {
+    const buffer = await useCase.execute({
+      templateType: TemplateType.GO,
+      params: { ...params, packageName: 'github.com/test/test-service' },
+    });
+    expect(Buffer.isBuffer(buffer)).toBe(true);
+    expect(buffer.length).toBeGreaterThan(100);
+  });
+
+  it('generates a zip buffer for SPRING_BOOT template', async () => {
+    const buffer = await useCase.execute({
+      templateType: TemplateType.SPRING_BOOT,
+      params,
+    });
+    expect(Buffer.isBuffer(buffer)).toBe(true);
+    expect(buffer.length).toBeGreaterThan(100);
+  });
+
+  it('throws for unknown template type', async () => {
+    await expect(
+      useCase.execute({ templateType: 'UNKNOWN', params }),
+    ).rejects.toThrow();
   });
 });

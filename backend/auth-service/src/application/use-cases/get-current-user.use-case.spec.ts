@@ -2,6 +2,7 @@ import { GetCurrentUserUseCase } from './get-current-user.use-case';
 import { UserNotFoundError } from '../../domain/exceptions/domain-exceptions';
 import { UserStatus } from '../../domain/enums/user-status.enum';
 import { User } from '../../domain/entities/user.entity';
+import { UserRepository } from '../../domain/repositories/user.repository.port';
 
 function makeUser(): User {
   return new User({
@@ -17,7 +18,7 @@ function makeUser(): User {
   });
 }
 
-const mockUserRepository = {
+const mockUserRepository: jest.Mocked<UserRepository> = {
   findById: jest.fn(),
   findByEmail: jest.fn(),
   existsByEmail: jest.fn(),
@@ -29,7 +30,7 @@ describe('GetCurrentUserUseCase', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    useCase = new GetCurrentUserUseCase(mockUserRepository as any);
+    useCase = new GetCurrentUserUseCase(mockUserRepository);
   });
 
   it('returns the domain User when found', async () => {

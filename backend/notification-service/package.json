@@ -2,7 +2,7 @@
   "name": "@idp/notification-service",
   "version": "0.1.0",
   "private": true,
-  "description": "IDP Platform - Notification Engine (rolling, blue-green, canary) — Phase 6",
+  "description": "IDP Platform - Notification (SMTP-HOST, SLACK-WEBHOOK, DISCORD-WEBHOOK) — Phase 7",
   "scripts": {
     "build": "nest build",
     "start": "nest start",
@@ -21,13 +21,11 @@
     "@nestjs/swagger": "^7.4.0",
     "class-transformer": "^0.5.1",
     "class-validator": "^0.14.1",
-    "dotenv": "^16.4.5",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.1"
   },
   "devDependencies": {
     "@nestjs/cli": "^10.4.5",
-    "@nestjs/testing": "^10.4.4",
     "@types/jest": "^29.5.12",
     "@types/node": "^20.14.15",
     "@typescript-eslint/eslint-plugin": "^7.18.0",
@@ -47,7 +45,6 @@
     "testRegex": ".*\\.spec\\.ts$",
     "transform": { "^.+\\.ts$": "ts-jest" },
     "moduleNameMapper": { "^@idp/common$": "<rootDir>/../../common/src/index.ts" },
-    "testEnvironment": "node",
-    "coverageDirectory": "../coverage"
+    "testEnvironment": "node"
   }
 }

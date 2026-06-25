@@ -2,11 +2,7 @@ import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { HealthController } from './health/health.controller';
 
-/**
- * Deployment Service — Phase 5 stub.
- * Full implementation (rolling/blue-green/canary deployments, K8s integration,
- * promotion/rollback workflows) arrives in Phase 6.
- */
+/** Audit Service — Phase 5 stub. Central audit log aggregation in Phase 9. */
 @Module({
   imports: [ConfigModule.forRoot({ isGlobal: true, envFilePath: ['.env'] })],
   controllers: [HealthController],

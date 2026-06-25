@@ -1,5 +1,4 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { Service } from '../../domain/entities/service.entity';
 import { ServiceType } from '../../domain/enums/service-type.enum';
 import { ServiceStatus } from '../../domain/enums/service-status.enum';
 import {

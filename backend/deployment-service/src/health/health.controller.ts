@@ -9,12 +9,20 @@ export class HealthController {
   @Get()
   @ApiOperation({ summary: 'Liveness probe' })
   liveness() {
-    return { status: 'UP', service: 'deployment-service', timestamp: new Date().toISOString() };
+    return {
+      status: 'UP',
+      service: 'deployment-service',
+      timestamp: new Date().toISOString(),
+    };
   }
 
   @Get('ready')
   @ApiOperation({ summary: 'Readiness probe' })
   readiness() {
-    return { status: 'READY', service: 'deployment-service', uptimeMs: Date.now() - this.startTime };
+    return {
+      status: 'READY',
+      service: 'deployment-service',
+      uptimeMs: Date.now() - this.startTime,
+    };
   }
 }
