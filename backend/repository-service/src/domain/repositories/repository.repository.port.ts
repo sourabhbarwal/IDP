@@ -25,18 +25,4 @@ export interface RepositoryRepository {
     provisionedBy: string;
   }): Promise<Repository>;
   updateStatus(id: string, status: RepositoryStatus, errorMessage?: string): Promise<void>;
-  update(
-    id: string,
-    params: Partial<{
-      githubOwner: string;
-      githubRepo: string;
-      fullName: string;
-      htmlUrl: string;
-      cloneUrl: string;
-      sshUrl: string;
-      visibility: RepositoryVisibility;
-      status: RepositoryStatus;
-      errorMessage: string | null;
-    }>,
-  ): Promise<Repository>;
 }

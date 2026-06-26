@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository as TypeOrmRepo } from 'typeorm';
+import { IsNull, Repository as TypeOrmRepo } from 'typeorm';
 import { Repository } from '../../../domain/entities/repository.entity';
 import { RepositoryStatus } from '../../../domain/enums/repository-status.enum';
 import { RepositoryVisibility } from '../../../domain/enums/repository-visibility.enum';
@@ -10,7 +10,10 @@ import { toDomainRepository } from './entity-mappers';
 
 @Injectable()
 export class RepositoryRepositoryAdapter implements RepositoryRepository {
-  constructor(@InjectRepository(RepositoryOrmEntity) private readonly repo: TypeOrmRepo<RepositoryOrmEntity>) {}
+  constructor(
+    @InjectRepository(RepositoryOrmEntity)
+    private readonly repo: TypeOrmRepo<RepositoryOrmEntity>,
+  ) {}
 
   async findById(id: string): Promise<Repository | null> {
     const e = await this.repo.findOne({ where: { id } });
@@ -22,7 +25,10 @@ export class RepositoryRepositoryAdapter implements RepositoryRepository {
     return e ? toDomainRepository(e) : null;
   }
 
-  async findAll(page: number, size: number): Promise<{ items: Repository[]; total: number }> {
+  async findAll(
+    page: number,
+    size: number,
+  ): Promise<{ items: Repository[]; total: number }> {
     const [items, total] = await this.repo.findAndCount({
       order: { createdAt: 'DESC' },
       skip: page * size,
@@ -36,39 +42,33 @@ export class RepositoryRepositoryAdapter implements RepositoryRepository {
   }
 
   async create(params: {
-    serviceId: string; serviceName: string; serviceType: string;
-    githubOwner: string; githubRepo: string; fullName: string;
-    defaultBranch: string; htmlUrl: string; cloneUrl: string; sshUrl: string;
-    visibility: RepositoryVisibility; status: RepositoryStatus; provisionedBy: string;
+    serviceId: string;
+    serviceName: string;
+    serviceType: string;
+    githubOwner: string;
+    githubRepo: string;
+    fullName: string;
+    defaultBranch: string;
+    htmlUrl: string;
+    cloneUrl: string;
+    sshUrl: string;
+    visibility: RepositoryVisibility;
+    status: RepositoryStatus;
+    provisionedBy: string;
   }): Promise<Repository> {
     const entity = this.repo.create({ ...params, errorMessage: null });
     const saved = await this.repo.save(entity);
     return toDomainRepository(saved);
   }
 
-  async updateStatus(id: string, status: RepositoryStatus, errorMessage?: string): Promise<void> {
-    await this.repo.update({ id }, { status, errorMessage: errorMessage ?? null });
-  }
-
-  async update(
+  async updateStatus(
     id: string,
-    params: Partial<{
-      githubOwner: string;
-      githubRepo: string;
-      fullName: string;
-      htmlUrl: string;
-      cloneUrl: string;
-      sshUrl: string;
-      visibility: RepositoryVisibility;
-      status: RepositoryStatus;
-      errorMessage: string | null;
-    }>,
-  ): Promise<Repository> {
-    await this.repo.update({ id }, params);
-    const updated = await this.repo.findOne({ where: { id } });
-    if (!updated) {
-      throw new Error(`Repository with id ${id} not found`);
-    }
-    return toDomainRepository(updated);
+    status: RepositoryStatus,
+    errorMessage?: string,
+  ): Promise<void> {
+    await this.repo.update(
+      { id },
+      { status, errorMessage: errorMessage ?? null },
+    );
   }
 }
