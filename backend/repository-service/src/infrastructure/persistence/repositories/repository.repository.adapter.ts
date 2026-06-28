@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { IsNull, Repository as TypeOrmRepo } from 'typeorm';
+import { Repository as TypeOrmRepo } from 'typeorm';
 import { Repository } from '../../../domain/entities/repository.entity';
 import { RepositoryStatus } from '../../../domain/enums/repository-status.enum';
 import { RepositoryVisibility } from '../../../domain/enums/repository-visibility.enum';
