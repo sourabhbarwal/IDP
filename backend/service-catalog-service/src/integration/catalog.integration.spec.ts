@@ -3,17 +3,34 @@ import { INestApplication, ValidationPipe } from '@nestjs/common';
 import request from 'supertest';
 import { PostgreSqlContainer, StartedPostgreSqlContainer } from '@testcontainers/postgresql';
 import { DataSource } from 'typeorm';
+import { Client } from 'pg';
 import { ServiceCatalogModule } from '../service-catalog.module';
 import { GlobalExceptionFilter } from '@idp/common';
 import * as jwt from 'jsonwebtoken';
+import { ServiceOrmEntity } from '../infrastructure/persistence/orm-entities/service.orm-entity';
+import { ServiceVersionOrmEntity } from '../infrastructure/persistence/orm-entities/service-version.orm-entity';
+import { AuditLogOrmEntity } from '../infrastructure/persistence/orm-entities/audit-log.orm-entity';
+import { InitCatalogSchema1718100000000 } from '../infrastructure/persistence/migrations/1718100000000-InitCatalogSchema';
 
 jest.setTimeout(120_000);
 
-const JWT_SECRET = 'integration-test-secret-long-enough';
+const JWT_SECRET = 'integration-test-secret-long-enough-for-hs256-algorithm';
 
-function makeToken(permissions: string[] = ['service:create', 'service:read', 'service:update', 'service:delete']): string {
+function makeToken(
+  permissions: string[] = [
+    'service:create',
+    'service:read',
+    'service:update',
+    'service:delete',
+  ],
+): string {
   return jwt.sign(
-    { sub: 'user-test-id', email: 'test@example.com', roles: ['DEVELOPER'], permissions },
+    {
+      sub: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+      email: 'test@example.com',
+      roles: ['DEVELOPER'],
+      permissions,
+    },
     JWT_SECRET,
     { issuer: 'idp-platform', expiresIn: 900 },
   );
@@ -25,16 +42,55 @@ describe('Service Catalog API (integration)', () => {
   let authHeader: string;
 
   beforeAll(async () => {
+    // 1. Start Postgres container
     container = await new PostgreSqlContainer('postgres:16-alpine')
-      .withDatabase('idp').withUsername('idp').withPassword('idp_test').start();
+      .withDatabase('idp')
+      .withUsername('idp')
+      .withPassword('idp_test')
+      .start();
 
-    process.env.DB_HOST = container.getHost();
-    process.env.DB_PORT = container.getMappedPort(5432).toString();
-    process.env.DB_USERNAME = container.getUsername();
-    process.env.DB_PASSWORD = container.getPassword();
-    process.env.DB_NAME = container.getDatabase();
+    const host = container.getHost();
+    const port = container.getMappedPort(5432);
+    const database = container.getDatabase();
+    const username = container.getUsername();
+    const password = container.getPassword();
+
+    // 2. Create the catalog schema FIRST using a raw pg client
+    //    TypeORM sets search_path=catalog on connect; schema must exist before that
+    const pgClient = new Client({ host, port, database, user: username, password });
+    await pgClient.connect();
+    await pgClient.query('CREATE SCHEMA IF NOT EXISTS catalog');
+    await pgClient.query('CREATE EXTENSION IF NOT EXISTS "pgcrypto"');
+    await pgClient.end();
+
+    // 3. Run migrations using a dedicated DataSource (NOT the NestJS-managed one)
+    //    The NestJS TypeOrmModule doesn't have migrations configured — only runtime queries
+    const migrationDataSource = new DataSource({
+      type: 'postgres',
+      host,
+      port,
+      username,
+      password,
+      database,
+      schema: 'catalog',
+      entities: [ServiceOrmEntity, ServiceVersionOrmEntity, AuditLogOrmEntity],
+      migrations: [InitCatalogSchema1718100000000],
+      migrationsTableName: 'catalog_migrations',
+    });
+
+    await migrationDataSource.initialize();
+    await migrationDataSource.runMigrations();
+    await migrationDataSource.destroy();
+
+    // 4. Set env vars so NestJS TypeOrmModule connects to the test container
+    process.env.DB_HOST = host;
+    process.env.DB_PORT = port.toString();
+    process.env.DB_USERNAME = username;
+    process.env.DB_PASSWORD = password;
+    process.env.DB_NAME = database;
     process.env.JWT_SECRET = JWT_SECRET;
 
+    // 5. Bootstrap NestJS app
     const moduleFixture: TestingModule = await Test.createTestingModule({
       imports: [ServiceCatalogModule],
     }).compile();
@@ -44,13 +100,13 @@ describe('Service Catalog API (integration)', () => {
     app.useGlobalFilters(new GlobalExceptionFilter());
     await app.init();
 
-    const dataSource = moduleFixture.get<DataSource>(DataSource);
-    await dataSource.runMigrations();
-
     authHeader = `Bearer ${makeToken()}`;
   });
 
-  afterAll(async () => { await app.close(); await container.stop(); });
+  afterAll(async () => {
+    await app.close();
+    await container.stop();
+  });
 
   let createdServiceId: string;
 
@@ -59,7 +115,12 @@ describe('Service Catalog API (integration)', () => {
       const res = await request(app.getHttpServer())
         .post('/api/v1/services')
         .set('Authorization', authHeader)
-        .send({ name: 'Test Service', type: 'NODEJS', description: 'A test service', tags: ['test'] })
+        .send({
+          name: 'Test Service',
+          type: 'NODEJS',
+          description: 'A test service',
+          tags: ['test'],
+        })
         .expect(201);
 
       expect(res.body.name).toBe('test-service');
@@ -101,7 +162,9 @@ describe('Service Catalog API (integration)', () => {
         .set('Authorization', authHeader)
         .expect(200);
 
-      res.body.content.forEach((s: { type: string }) => expect(s.type).toBe('NODEJS'));
+      res.body.content.forEach((s: { type: string }) =>
+        expect(s.type).toBe('NODEJS'),
+      );
     });
   });
 

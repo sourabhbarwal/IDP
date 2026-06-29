@@ -3,7 +3,9 @@
   "rootDir": "../src/integration",
   "testRegex": ".integration.spec.ts$",
   "transform": { "^.+\\.ts$": "ts-jest" },
-  "moduleNameMapper": { "^@idp/common$": "<rootDir>/../../../../common/src/index.ts" },
+  "moduleNameMapper": {
+    "^@idp/common$": "<rootDir>/../../../../backend/common/src/index.ts"
+  },
   "testEnvironment": "node",
   "testTimeout": 120000
 }

@@ -4,7 +4,7 @@ import { Repository } from 'typeorm';
 import { ServiceVersion } from '../../../domain/entities/service-version.entity';
 import { ServiceVersionRepository } from '../../../domain/repositories/service-version.repository.port';
 import { ServiceVersionOrmEntity } from '../orm-entities/service-version.orm-entity';
-import { toDomainServiceVersion } from './entity-mapper';
+import { toDomainServiceVersion } from './entity-mappers';
 
 @Injectable()
 export class ServiceVersionRepositoryAdapter implements ServiceVersionRepository {

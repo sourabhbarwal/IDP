@@ -4,6 +4,7 @@ export class InitCatalogSchema1718100000000 implements MigrationInterface {
   name = 'InitCatalogSchema1718100000000';
 
   public async up(queryRunner: QueryRunner): Promise<void> {
+    // Create schema first — before any other operations
     await queryRunner.query(`CREATE SCHEMA IF NOT EXISTS catalog`);
     await queryRunner.query(`CREATE EXTENSION IF NOT EXISTS "pgcrypto"`);
 
