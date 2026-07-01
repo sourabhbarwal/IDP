@@ -37,10 +37,14 @@ spec:
               value: {{ $value | quote }}
             {{- end }}
           {{- end }}
-          {{- if .Values.envFrom }}
           envFrom:
+            {{- if .Values.secretData }}
+            - secretRef:
+                name: {{ include "idp-service.fullname" . }}-secret
+            {{- end }}
+            {{- if .Values.envFrom }}
             {{- toYaml .Values.envFrom | nindent 12 }}
-          {{- end }}
+            {{- end }}
           livenessProbe:
             httpGet:
               path: {{ .Values.healthCheck.livenessPath }}

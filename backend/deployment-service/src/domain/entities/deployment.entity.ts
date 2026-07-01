@@ -45,7 +45,22 @@ export class Deployment {
   readonly createdAt: Date;
 
   constructor(props: DeploymentProps) {
-    Object.assign(this, props);
+    this.id = props.id;
+    this.serviceId = props.serviceId;
+    this.serviceName = props.serviceName;
+    this.environment = props.environment;
+    this.namespace = props.namespace;
+    this.imageTag = props.imageTag;
+    this.strategy = props.strategy;
+    this.status = props.status;
+    this.previousImageTag = props.previousImageTag;
+    this.replicas = props.replicas;
+    this.canaryWeight = props.canaryWeight;
+    this.errorMessage = props.errorMessage;
+    this.triggeredBy = props.triggeredBy;
+    this.startedAt = props.startedAt;
+    this.completedAt = props.completedAt;
+    this.createdAt = props.createdAt;
   }
 
   isTerminal(): boolean {

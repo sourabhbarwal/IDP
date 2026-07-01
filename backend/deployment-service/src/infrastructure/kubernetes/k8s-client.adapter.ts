@@ -9,9 +9,14 @@ import {
   KubernetesClient,
 } from '../../application/ports/kubernetes-client.port';
 
+const PATCH_HEADERS = { headers: { 'Content-Type': 'application/strategic-merge-patch+json' } };
+
 /**
  * Production implementation of KubernetesClient using @kubernetes/client-node.
  * Connects to kind locally (via KUBECONFIG) or in-cluster when deployed.
+ *
+ * NOTE: this version of the client uses positional arguments and wraps
+ * responses as { response, body } -- not the object-param API of client-node v1.x.
  */
 @Injectable()
 export class K8sClientAdapter implements KubernetesClient, OnModuleInit {
@@ -29,10 +34,8 @@ export class K8sClientAdapter implements KubernetesClient, OnModuleInit {
     if (kubeconfigPath) {
       this.kc.loadFromFile(kubeconfigPath);
     } else if (process.env.KUBERNETES_SERVICE_HOST) {
-      // Running inside a pod — use in-cluster service account
       this.kc.loadFromCluster();
     } else {
-      // Fall back to default ~/.kube/config (what kind writes to)
       this.kc.loadFromDefault();
     }
 
@@ -42,15 +45,13 @@ export class K8sClientAdapter implements KubernetesClient, OnModuleInit {
 
   async ensureNamespace(namespace: string): Promise<void> {
     try {
-      await this.coreApi.readNamespace({ name: namespace });
+      await this.coreApi.readNamespace(namespace);
     } catch {
       this.logger.log(`Creating namespace ${namespace}`);
       await this.coreApi.createNamespace({
-        body: {
-          metadata: {
-            name: namespace,
-            labels: { 'managed-by': 'idp-platform' },
-          },
+        metadata: {
+          name: namespace,
+          labels: { 'managed-by': 'idp-platform' },
         },
       });
     }
@@ -85,10 +86,8 @@ export class K8sClientAdapter implements KubernetesClient, OnModuleInit {
 
     await this.upsertDeployment(params.namespace, coloredName, deploymentSpec);
 
-    // Ensure the Service exists, initially pointing at whichever color is live.
-    // If the Service doesn't exist yet, default to this color being active.
     try {
-      await this.coreApi.readNamespacedService({ name: params.deploymentName, namespace: params.namespace });
+      await this.coreApi.readNamespacedService(params.deploymentName, params.namespace);
     } catch {
       await this.upsertService(params.namespace, params.deploymentName, params.containerPort, {
         app: params.deploymentName,
@@ -98,19 +97,15 @@ export class K8sClientAdapter implements KubernetesClient, OnModuleInit {
   }
 
   async switchServiceSelector(params: BlueGreenSwitchParams): Promise<void> {
-    const service = await this.coreApi.readNamespacedService({
-      name: params.serviceName,
-      namespace: params.namespace,
-    });
+    const { body: service } = await this.coreApi.readNamespacedService(
+      params.serviceName,
+      params.namespace,
+    );
 
     service.spec = service.spec ?? {};
     service.spec.selector = { app: params.serviceName, color: params.activeColorLabel };
 
-    await this.coreApi.replaceNamespacedService({
-      name: params.serviceName,
-      namespace: params.namespace,
-      body: service,
-    });
+    await this.coreApi.replaceNamespacedService(params.serviceName, params.namespace, service);
 
     this.logger.log(
       `Switched Service ${params.serviceName} in ${params.namespace} to color=${params.activeColorLabel}`,
@@ -128,17 +123,11 @@ export class K8sClientAdapter implements KubernetesClient, OnModuleInit {
     );
 
     await this.upsertDeployment(params.namespace, canaryName, deploymentSpec);
-
-    // Service selects on `app` only (not `track`), so it load-balances
-    // across both stable and canary pods automatically.
   }
 
   async promoteCanary(namespace: string, deploymentName: string): Promise<void> {
     const canaryName = `${deploymentName}-canary`;
-    const canary = await this.appsApi.readNamespacedDeployment({
-      name: canaryName,
-      namespace,
-    });
+    const { body: canary } = await this.appsApi.readNamespacedDeployment(canaryName, namespace);
 
     const image = canary.spec?.template?.spec?.containers?.[0]?.image;
     const replicas = canary.spec?.replicas ?? 1;
@@ -147,23 +136,21 @@ export class K8sClientAdapter implements KubernetesClient, OnModuleInit {
       throw new Error(`Canary deployment ${canaryName} has no container image to promote`);
     }
 
-    // Update stable deployment with the canary's image, then remove canary
     await this.appsApi.patchNamespacedDeployment(
+      deploymentName,
+      namespace,
       {
-        name: deploymentName,
-        namespace,
-        body: {
-          spec: {
-            replicas,
-            template: { spec: { containers: [{ name: deploymentName, image }] } },
-          },
+        spec: {
+          replicas,
+          template: { spec: { containers: [{ name: deploymentName, image }] } },
         },
       },
       undefined,
       undefined,
       undefined,
       undefined,
-      { headers: { 'Content-Type': 'application/strategic-merge-patch+json' } },
+      undefined,
+      PATCH_HEADERS,
     );
 
     await this.removeCanary(namespace, deploymentName);
@@ -172,7 +159,7 @@ export class K8sClientAdapter implements KubernetesClient, OnModuleInit {
   async removeCanary(namespace: string, deploymentName: string): Promise<void> {
     const canaryName = `${deploymentName}-canary`;
     try {
-      await this.appsApi.deleteNamespacedDeployment({ name: canaryName, namespace });
+      await this.appsApi.deleteNamespacedDeployment(canaryName, namespace);
     } catch (err) {
       this.logger.warn(`Canary ${canaryName} already removed or not found: ${err}`);
     }
@@ -180,10 +167,10 @@ export class K8sClientAdapter implements KubernetesClient, OnModuleInit {
 
   async getDeploymentHealth(namespace: string, deploymentName: string): Promise<DeploymentHealth> {
     try {
-      const deployment = await this.appsApi.readNamespacedDeployment({
-        name: deploymentName,
+      const { body: deployment } = await this.appsApi.readNamespacedDeployment(
+        deploymentName,
         namespace,
-      });
+      );
 
       const desired = deployment.spec?.replicas ?? 0;
       const ready = deployment.status?.readyReplicas ?? 0;
@@ -200,31 +187,33 @@ export class K8sClientAdapter implements KubernetesClient, OnModuleInit {
 
   async rollbackDeployment(namespace: string, deploymentName: string, previousImage: string): Promise<void> {
     await this.appsApi.patchNamespacedDeployment(
+      deploymentName,
+      namespace,
       {
-        name: deploymentName,
-        namespace,
-        body: {
-          spec: {
-            template: { spec: { containers: [{ name: deploymentName, image: previousImage }] } },
-          },
+        spec: {
+          template: { spec: { containers: [{ name: deploymentName, image: previousImage }] } },
         },
       },
       undefined,
       undefined,
       undefined,
       undefined,
-      { headers: { 'Content-Type': 'application/strategic-merge-patch+json' } },
+      undefined,
+      PATCH_HEADERS,
     );
   }
 
   async scaleDeployment(namespace: string, deploymentName: string, replicas: number): Promise<void> {
     await this.appsApi.patchNamespacedDeployment(
-      { name: deploymentName, namespace, body: { spec: { replicas } } },
+      deploymentName,
+      namespace,
+      { spec: { replicas } },
       undefined,
       undefined,
       undefined,
       undefined,
-      { headers: { 'Content-Type': 'application/strategic-merge-patch+json' } },
+      undefined,
+      PATCH_HEADERS,
     );
   }
 
@@ -256,11 +245,11 @@ export class K8sClientAdapter implements KubernetesClient, OnModuleInit {
                   limits: { cpu: '500m', memory: '512Mi' },
                 },
                 livenessProbe: {
-                  httpGet: { path: '/health', port: containerPort as unknown as object },
+                  httpGet: { path: '/health', port: containerPort },
                   initialDelaySeconds: 15,
                 },
                 readinessProbe: {
-                  httpGet: { path: '/health/ready', port: containerPort as unknown as object },
+                  httpGet: { path: '/health/ready', port: containerPort },
                   initialDelaySeconds: 5,
                 },
               },
@@ -277,11 +266,11 @@ export class K8sClientAdapter implements KubernetesClient, OnModuleInit {
     spec: k8s.V1Deployment,
   ): Promise<void> {
     try {
-      await this.appsApi.readNamespacedDeployment({ name, namespace });
-      await this.appsApi.replaceNamespacedDeployment({ name, namespace, body: spec });
+      await this.appsApi.readNamespacedDeployment(name, namespace);
+      await this.appsApi.replaceNamespacedDeployment(name, namespace, spec);
       this.logger.log(`Updated Deployment ${name} in ${namespace}`);
     } catch {
-      await this.appsApi.createNamespacedDeployment({ namespace, body: spec });
+      await this.appsApi.createNamespacedDeployment(namespace, spec);
       this.logger.log(`Created Deployment ${name} in ${namespace}`);
     }
   }
@@ -296,16 +285,16 @@ export class K8sClientAdapter implements KubernetesClient, OnModuleInit {
       metadata: { name },
       spec: {
         selector,
-        ports: [{ port: 80, targetPort: containerPort as unknown as object }],
+        ports: [{ port: 80, targetPort: containerPort }],
         type: 'ClusterIP',
       },
     };
 
     try {
-      await this.coreApi.readNamespacedService({ name, namespace });
-      await this.coreApi.replaceNamespacedService({ name, namespace, body: serviceSpec });
+      await this.coreApi.readNamespacedService(name, namespace);
+      await this.coreApi.replaceNamespacedService(name, namespace, serviceSpec);
     } catch {
-      await this.coreApi.createNamespacedService({ namespace, body: serviceSpec });
+      await this.coreApi.createNamespacedService(namespace, serviceSpec);
     }
   }
 }

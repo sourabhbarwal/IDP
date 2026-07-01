@@ -19,7 +19,7 @@ import { ProvisionRepositoryUseCase } from './application/use-cases/provision-re
 import { GetRepositoryUseCase } from './application/use-cases/get-repository.use-case';
 import { ListRepositoriesUseCase } from './application/use-cases/list-repositories.use-case';
 import { RepositoriesController } from './infrastructure/web/repositories.controller';
-
+import { HealthController } from './infrastructure/web/health.controller';
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true, load: [configuration], envFilePath: ['.env'] }),
@@ -31,7 +31,7 @@ import { RepositoriesController } from './infrastructure/web/repositories.contro
       inject: [ConfigService],
     }),
   ],
-  controllers: [RepositoriesController],
+  controllers: [RepositoriesController, HealthController ],
   providers: [
     { provide: REPOSITORY_REPOSITORY, useClass: RepositoryRepositoryAdapter },
     { provide: GITHUB_CLIENT, useClass: OctokitGithubClient },

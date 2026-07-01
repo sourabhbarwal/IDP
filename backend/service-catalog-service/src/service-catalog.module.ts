@@ -21,7 +21,7 @@ import { ListServicesUseCase } from './application/use-cases/list-services.use-c
 import { UpdateServiceUseCase } from './application/use-cases/update-service.use-case';
 import { DeleteServiceUseCase } from './application/use-cases/delete-service.use-case';
 import { ServicesController } from './infrastructure/web/services.controller';
-
+import { HealthController } from './infrastructure/web/health.controller';
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true, load: [configuration], envFilePath: ['.env'] }),
@@ -33,7 +33,7 @@ import { ServicesController } from './infrastructure/web/services.controller';
       inject: [ConfigService],
     }),
   ],
-  controllers: [ServicesController],
+  controllers: [ServicesController, HealthController],
   providers: [
     { provide: SERVICE_REPOSITORY, useClass: ServiceRepositoryAdapter },
     { provide: SERVICE_VERSION_REPOSITORY, useClass: ServiceVersionRepositoryAdapter },

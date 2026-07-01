@@ -2,8 +2,7 @@ import { Inject, Injectable, Logger } from '@nestjs/common';
 import { AUDIT_PUBLISHER, AuditPublisher, createAuditEvent } from '@idp/common';
 import { Deployment } from '../../domain/entities/deployment.entity';
 import { DeploymentStrategy } from '../../domain/enums/deployment-strategy.enum';
-import { DeploymentStatus } from '../../domain/enums/deployment-status.enum';
-import { EnvironmentName } from '../../domain/enums/environment-name.enum';
+import { DeploymentStatus } from '../../domain/enums/deployment-status.enum'
 import {
   DeploymentNotFoundError,
   KubernetesOperationError,

@@ -9,7 +9,7 @@ import { ZipBuilderService } from './application/services/zip-builder.service';
 import { ListTemplatesUseCase } from './application/use-cases/list-templates.use-case';
 import { GenerateTemplateUseCase } from './application/use-cases/generate-template.use-case';
 import { TemplatesController } from './infrastructure/web/templates.controller';
-
+import { HealthController } from './infrastructure/web/health.controller';
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true, load: [configuration], envFilePath: ['.env'] }),
@@ -19,7 +19,7 @@ import { TemplatesController } from './infrastructure/web/templates.controller';
       inject: [ConfigService],
     }),
   ],
-  controllers: [TemplatesController],
+  controllers: [TemplatesController, HealthController],
   providers: [
     JwtStrategy,
     TemplateRegistryService,

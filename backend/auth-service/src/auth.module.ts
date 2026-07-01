@@ -3,7 +3,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { JwtModule } from '@nestjs/jwt';
 import { PassportModule } from '@nestjs/passport';
-
+import { HealthController } from './infrastructure/web/health.controller';
 import configuration from './infrastructure/config/configuration';
 import { typeOrmOptionsFactory } from './infrastructure/config/typeorm-options.factory';
 
@@ -82,7 +82,7 @@ import { UsersController } from './infrastructure/web/users.controller';
     }),
   ],
 
-  controllers: [AuthController, UsersController],
+  controllers: [AuthController, UsersController, HealthController],
 
   providers: [
     // Repository adapters bound to their domain port tokens
