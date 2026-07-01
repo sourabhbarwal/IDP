@@ -1,0 +1,24 @@
+idp-service:
+  nameOverride: template-service
+  image:
+    repository: idp-platform/template-service
+    tag: local
+  service:
+    port: 80
+    targetPort: 3004
+  resources:
+    requests:
+      cpu: 50m
+      memory: 64Mi
+    limits:
+      cpu: 300m
+      memory: 256Mi
+  hpa:
+    minReplicas: 1
+    maxReplicas: 2
+  env:
+    NODE_ENV: production
+    PORT: "3004"
+    ALLOWED_ORIGINS: "http://idp.localtest.me"
+  secretData:
+    JWT_SECRET: local-kind-cluster-secret-change-for-real-deployments

@@ -14,6 +14,7 @@ FROM node:20-alpine AS production
 ARG BUILD_REVISION=unknown
 ARG BUILD_DATE=unknown
 LABEL org.opencontainers.image.title="IDP Platform - Deployment Service" \
+      org.opencontainers.image.description="Rolling, blue-green, canary deployment orchestration" \
       org.opencontainers.image.vendor="IDP Platform" \
       org.opencontainers.image.revision="${BUILD_REVISION}" \
       org.opencontainers.image.created="${BUILD_DATE}"

@@ -1,0 +1,32 @@
+idp-service:
+  nameOverride: repository-service
+  image:
+    repository: idp-platform/repository-service
+    tag: local
+  service:
+    port: 80
+    targetPort: 3003
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+  hpa:
+    minReplicas: 1
+    maxReplicas: 2
+  env:
+    NODE_ENV: production
+    PORT: "3003"
+    DB_HOST: postgres.platform.svc.cluster.local
+    DB_PORT: "5432"
+    DB_USERNAME: idp
+    DB_NAME: idp
+    DB_SCHEMA: repository
+    ALLOWED_ORIGINS: "http://idp.localtest.me"
+    GITHUB_OWNER: "your-github-username"
+  secretData:
+    DB_PASSWORD: ***REMOVED***
+    JWT_SECRET: local-kind-cluster-secret-change-for-real-deployments
+    GITHUB_TOKEN: "your-github-pat-here"

@@ -1,0 +1,30 @@
+# kind cluster configuration — sized for 8GB RAM Windows machines
+# Usage: kind create cluster --config infrastructure/kubernetes/kind-config.yaml --name idp-platform
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+name: idp-platform
+
+nodes:
+  - role: control-plane
+    extraPortMappings:
+      # Expose ingress controller ports to host machine
+      - containerPort: 80
+        hostPort: 80
+        protocol: TCP
+      - containerPort: 443
+        hostPort: 443
+        protocol: TCP
+    kubeadmConfigPatches:
+      - |
+        kind: InitConfiguration
+        nodeRegistration:
+          kubeletExtraArgs:
+            node-labels: "ingress-ready=true"
+  - role: worker
+
+# Conservative resource footprint — single worker keeps memory usage down
+# on 8GB machines while still demonstrating multi-node scheduling
+networking:
+  apiServerPort: 6443
+  podSubnet: "10.244.0.0/16"
+  serviceSubnet: "10.96.0.0/12"

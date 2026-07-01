@@ -1,0 +1,30 @@
+idp-service:
+  nameOverride: service-catalog-service
+  image:
+    repository: idp-platform/service-catalog-service
+    tag: local
+  service:
+    port: 80
+    targetPort: 3002
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+  hpa:
+    minReplicas: 1
+    maxReplicas: 3
+  env:
+    NODE_ENV: production
+    PORT: "3002"
+    DB_HOST: postgres.platform.svc.cluster.local
+    DB_PORT: "5432"
+    DB_USERNAME: idp
+    DB_NAME: idp
+    DB_SCHEMA: catalog
+    ALLOWED_ORIGINS: "http://idp.localtest.me"
+  secretData:
+    DB_PASSWORD: ***REMOVED***
+    JWT_SECRET: local-kind-cluster-secret-change-for-real-deployments

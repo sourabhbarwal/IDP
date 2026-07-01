@@ -1,0 +1,10 @@
+apiVersion: v2
+name: service-catalog-service
+description: IDP Platform Service Catalog Helm chart
+type: application
+version: 0.1.0
+appVersion: "0.1.0"
+dependencies:
+  - name: idp-service
+    version: 0.1.0
+    repository: "file://../idp-service"

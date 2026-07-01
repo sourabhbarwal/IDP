@@ -1,21 +1,20 @@
 import { NestFactory } from '@nestjs/core';
+import { ValidationPipe } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { DeploymentModule } from './deployment.module';
 import { GlobalExceptionFilter } from '@idp/common';
 
 async function bootstrap(): Promise<void> {
   const app = await NestFactory.create(DeploymentModule);
-  app.enableCors({
-    origin: process.env.ALLOWED_ORIGINS?.split(',') ?? ['http://localhost:5173'],
-  });
+  app.enableCors({ origin: process.env.ALLOWED_ORIGINS?.split(',') ?? ['http://localhost:5173'], credentials: true });
+  app.useGlobalPipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }));
   app.useGlobalFilters(new GlobalExceptionFilter());
 
   if (process.env.NODE_ENV !== 'production') {
     const config = new DocumentBuilder()
       .setTitle('IDP Platform — Deployment Service')
-      .setDescription('Deployment orchestration API — full implementation in Phase 6')
-      .setVersion('0.1.0')
-      .build();
+      .setDescription('Rolling, blue-green, canary deployment orchestration')
+      .setVersion('0.1.0').addBearerAuth().build();
     SwaggerModule.setup('api/docs', app, SwaggerModule.createDocument(app, config));
   }
 
@@ -24,7 +23,4 @@ async function bootstrap(): Promise<void> {
   console.log(`deployment-service listening on port ${port}`);
 }
 
-bootstrap().catch((err) => {
-  console.error('Failed to start deployment-service:', err);
-  process.exit(1);
-});
+bootstrap().catch((err) => { console.error('Failed to start deployment-service:', err); process.exit(1); });

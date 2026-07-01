@@ -1,14 +1,54 @@
 import { Module } from '@nestjs/common';
-import { ConfigModule } from '@nestjs/config';
-import { HealthController } from './health/health.controller';
-
-/**
- * Deployment Service — Phase 5 stub.
- * Full implementation (rolling/blue-green/canary, K8s integration,
- * promote/rollback) arrives in Phase 6.
- */
+import { ConfigModule, ConfigService } from '@nestjs/config';
+import { TypeOrmModule } from '@nestjs/typeorm';
+import { JwtModule } from '@nestjs/jwt';
+import { PassportModule } from '@nestjs/passport';
+import { AUDIT_PUBLISHER } from '@idp/common';
+import configuration from './infrastructure/config/configuration';
+import { typeOrmOptionsFactory } from './infrastructure/config/typeorm-options.factory';
+import { DeploymentOrmEntity } from './infrastructure/persistence/orm-entities/deployment.orm-entity';
+import { AuditLogOrmEntity } from './infrastructure/persistence/orm-entities/audit-log.orm-entity';
+import { DeploymentRepositoryAdapter } from './infrastructure/persistence/repositories/deployment.repository.adapter';
+import { DEPLOYMENT_REPOSITORY } from './domain/repositories/deployment.repository.port';
+import { KUBERNETES_CLIENT } from './application/ports/kubernetes-client.port';
+import { K8sClientAdapter } from './infrastructure/kubernetes/k8s-client.adapter';
+import { LocalAuditPublisher } from './infrastructure/audit/local-audit-publisher';
+import { JwtStrategy } from './infrastructure/security/jwt.strategy';
+import { RollingStrategy } from './application/strategies/rolling-strategy';
+import { BlueGreenStrategy } from './application/strategies/blue-green-strategy';
+import { CanaryStrategy } from './application/strategies/canary-strategy';
+import { CreateDeploymentUseCase } from './application/use-cases/create-deployment.use-case';
+import { RollbackDeploymentUseCase } from './application/use-cases/rollback-deployment.use-case';
+import { PromoteDeploymentUseCase } from './application/use-cases/promote-deployment.use-case';
+import { GetDeploymentUseCase } from './application/use-cases/get-deployment.use-case';
+import { ListDeploymentsUseCase } from './application/use-cases/list-deployments.use-case';
+import { DeploymentsController } from './infrastructure/web/deployments.controller';
+import { HealthController } from './infrastructure/web/health.controller';
 @Module({
-  imports: [ConfigModule.forRoot({ isGlobal: true, envFilePath: ['.env'] })],
-  controllers: [HealthController],
+  imports: [
+    ConfigModule.forRoot({ isGlobal: true, load: [configuration], envFilePath: ['.env'] }),
+    TypeOrmModule.forRootAsync({ useFactory: typeOrmOptionsFactory, inject: [ConfigService] }),
+    TypeOrmModule.forFeature([DeploymentOrmEntity, AuditLogOrmEntity]),
+    PassportModule.register({ defaultStrategy: 'jwt' }),
+    JwtModule.registerAsync({
+      useFactory: (config: ConfigService) => ({ secret: config.get<string>('JWT_SECRET') }),
+      inject: [ConfigService],
+    }),
+  ],
+  controllers: [DeploymentsController, HealthController],
+  providers: [
+    { provide: DEPLOYMENT_REPOSITORY, useClass: DeploymentRepositoryAdapter },
+    { provide: KUBERNETES_CLIENT, useClass: K8sClientAdapter },
+    { provide: AUDIT_PUBLISHER, useClass: LocalAuditPublisher },
+    JwtStrategy,
+    RollingStrategy,
+    BlueGreenStrategy,
+    CanaryStrategy,
+    CreateDeploymentUseCase,
+    RollbackDeploymentUseCase,
+    PromoteDeploymentUseCase,
+    GetDeploymentUseCase,
+    ListDeploymentsUseCase,
+  ],
 })
 export class DeploymentModule {}
