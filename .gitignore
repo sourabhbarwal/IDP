@@ -6,6 +6,7 @@ PROGRESS.md
 docs/internal/
 docs/checkpoints/
 *.scratch.md
+docs/
 
 # =========================================================
 # Java / Spring Boot

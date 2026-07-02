@@ -119,6 +119,14 @@ export default function DashboardPage() {
             <p className="text-xs text-primary-600 mt-3 font-medium">Open →</p>
           </Link>
 
+          <Link to="/monitoring"
+            className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 hover:border-primary-300 hover:shadow-md transition-all group">
+            <div className="text-3xl mb-3">📊</div>
+            <h3 className="font-semibold text-gray-800 group-hover:text-primary-600">Monitoring</h3>
+            <p className="text-sm text-gray-500 mt-1">Metrics, logs, Prometheus & Grafana</p>
+            <p className="text-xs text-primary-600 mt-3 font-medium">Open →</p>
+          </Link>
+          
           <div className="bg-white rounded-2xl shadow-sm border border-dashed border-gray-200 p-6 opacity-60">
             <div className="text-3xl mb-3">🤖</div>
             <h3 className="font-semibold text-gray-800">AI Copilot</h3>

@@ -22,8 +22,11 @@ export class JwtTokenProvider implements TokenProvider {
       permissions: user.permissions(),
     };
 
+    const secret = this.config.get<string>('JWT_SECRET');
+    console.log('[DEBUG] Signing with JWT_SECRET =', JSON.stringify(secret), '| length =', secret?.length);
+
     const token = this.jwtService.sign(claims, {
-      secret: this.config.get<string>('JWT_SECRET'),
+      secret,
       issuer: this.config.get<string>('JWT_ISSUER', 'idp-platform'),
       expiresIn: expiresInSeconds,
     });

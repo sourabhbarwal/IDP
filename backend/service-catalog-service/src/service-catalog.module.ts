@@ -22,6 +22,9 @@ import { UpdateServiceUseCase } from './application/use-cases/update-service.use
 import { DeleteServiceUseCase } from './application/use-cases/delete-service.use-case';
 import { ServicesController } from './infrastructure/web/services.controller';
 import { HealthController } from './infrastructure/web/health.controller';
+import { MiddlewareConsumer, NestModule } from '@nestjs/common';
+import { MetricsModule, MetricsMiddleware } from '@idp/common';
+
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true, load: [configuration], envFilePath: ['.env'] }),
@@ -32,6 +35,7 @@ import { HealthController } from './infrastructure/web/health.controller';
       useFactory: (config: ConfigService) => ({ secret: config.get<string>('JWT_SECRET') }),
       inject: [ConfigService],
     }),
+    MetricsModule,
   ],
   controllers: [ServicesController, HealthController],
   providers: [
@@ -46,4 +50,8 @@ import { HealthController } from './infrastructure/web/health.controller';
     DeleteServiceUseCase,
   ],
 })
-export class ServiceCatalogModule {}
+export class ServiceCatalogModule implements NestModule {
+  configure(consumer: MiddlewareConsumer) {
+    consumer.apply(MetricsMiddleware).forRoutes('*');
+  }
+}

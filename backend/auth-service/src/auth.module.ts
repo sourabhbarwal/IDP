@@ -46,6 +46,10 @@ import { LocalAuditPublisher } from './infrastructure/audit/local-audit-publishe
 import { AuthController } from './infrastructure/web/auth.controller';
 import { UsersController } from './infrastructure/web/users.controller';
 
+import { MiddlewareConsumer, NestModule } from '@nestjs/common';
+import { MetricsModule, MetricsMiddleware } from '@idp/common';
+
+
 @Module({
   imports: [
     // Config
@@ -80,6 +84,7 @@ import { UsersController } from './infrastructure/web/users.controller';
       }),
       inject: [ConfigService],
     }),
+    MetricsModule,
   ],
 
   controllers: [AuthController, UsersController, HealthController],
@@ -106,4 +111,8 @@ import { UsersController } from './infrastructure/web/users.controller';
     GetCurrentUserUseCase,
   ],
 })
-export class AuthModule {}
+export class AuthModule implements NestModule {
+  configure(consumer: MiddlewareConsumer) {
+    consumer.apply(MetricsMiddleware).forRoutes('*');
+  }
+}

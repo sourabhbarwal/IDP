@@ -20,6 +20,9 @@ import { GetRepositoryUseCase } from './application/use-cases/get-repository.use
 import { ListRepositoriesUseCase } from './application/use-cases/list-repositories.use-case';
 import { RepositoriesController } from './infrastructure/web/repositories.controller';
 import { HealthController } from './infrastructure/web/health.controller';
+import { MiddlewareConsumer, NestModule } from '@nestjs/common';
+import { MetricsModule, MetricsMiddleware } from '@idp/common';
+
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true, load: [configuration], envFilePath: ['.env'] }),
@@ -30,6 +33,7 @@ import { HealthController } from './infrastructure/web/health.controller';
       useFactory: (config: ConfigService) => ({ secret: config.get<string>('JWT_SECRET') }),
       inject: [ConfigService],
     }),
+    MetricsModule,
   ],
   controllers: [RepositoriesController, HealthController ],
   providers: [
@@ -43,4 +47,8 @@ import { HealthController } from './infrastructure/web/health.controller';
     ListRepositoriesUseCase,
   ],
 })
-export class RepositoryModule {}
+export class RepositoryModule implements NestModule {
+  configure(consumer: MiddlewareConsumer) {
+    consumer.apply(MetricsMiddleware).forRoutes('*');
+  }
+}
