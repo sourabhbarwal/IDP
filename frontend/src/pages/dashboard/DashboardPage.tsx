@@ -16,10 +16,19 @@ export default function DashboardPage() {
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
   const { user } = useAppSelector((s) => s.auth);
+  const roles = user?.roles ?? [];
+  const permissions = user?.permissions ?? [];
+  const createdAt = user?.createdAt ? new Date(user.createdAt).toLocaleDateString() : 'Unknown';
+  const status = user?.status ?? 'Unknown';
 
+  // useEffect(() => {
+  //   if (!user) { navigate('/login'); return; }
+  //   dispatch(getMe());
+  // }, [user, navigate, dispatch]);
   useEffect(() => {
     if (!user) { navigate('/login'); return; }
     dispatch(getMe());
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleLogout = async () => {
@@ -67,10 +76,10 @@ export default function DashboardPage() {
             <div><span className="text-gray-500">Full Name</span><p className="font-medium">{user.fullName}</p></div>
             <div><span className="text-gray-500">Email</span><p className="font-medium">{user.email}</p></div>
             <div><span className="text-gray-500">Status</span>
-              <p className="font-medium"><span className="inline-block px-2 py-0.5 rounded-full bg-green-100 text-green-700 text-xs">{user.status}</span></p>
+              <p className="font-medium"><span className="inline-block px-2 py-0.5 rounded-full bg-green-100 text-green-700 text-xs">{status}</span></p>
             </div>
             <div><span className="text-gray-500">Member since</span>
-              <p className="font-medium">{new Date(user.createdAt).toLocaleDateString()}</p>
+              <p className="font-medium">{createdAt}</p>
             </div>
           </div>
         </div>
@@ -79,23 +88,31 @@ export default function DashboardPage() {
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 mb-6">
           <h2 className="text-lg font-semibold text-gray-900 mb-4">Assigned Roles</h2>
           <div className="flex flex-wrap gap-2">
-            {user.roles.map((role) => (
-              <span key={role} className={`px-3 py-1 rounded-full text-sm font-medium ${ROLE_COLORS[role] ?? 'bg-gray-100 text-gray-700'}`}>
-                {role.replace(/_/g, ' ')}
-              </span>
-            ))}
+            {roles.length > 0 ? (
+              roles.map((role) => (
+                <span key={role} className={`px-3 py-1 rounded-full text-sm font-medium ${ROLE_COLORS[role] ?? 'bg-gray-100 text-gray-700'}`}>
+                  {role.replace(/_/g, ' ')}
+                </span>
+              ))
+            ) : (
+              <span className="text-sm text-gray-500">No roles assigned</span>
+            )}
           </div>
         </div>
 
         {/* Permissions */}
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 mb-6">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">Permissions ({user.permissions.length})</h2>
+          <h2 className="text-lg font-semibold text-gray-900 mb-4">Permissions ({permissions.length})</h2>
           <div className="flex flex-wrap gap-2">
-            {user.permissions.map((perm) => (
-              <span key={perm} className="px-2.5 py-1 rounded-lg bg-gray-100 text-gray-700 text-xs font-mono">
-                {perm}
-              </span>
-            ))}
+            {permissions.length > 0 ? (
+              permissions.map((perm) => (
+                <span key={perm} className="px-2.5 py-1 rounded-lg bg-gray-100 text-gray-700 text-xs font-mono">
+                  {perm}
+                </span>
+              ))
+            ) : (
+              <span className="text-sm text-gray-500">No permissions assigned</span>
+            )}
           </div>
         </div>
 
