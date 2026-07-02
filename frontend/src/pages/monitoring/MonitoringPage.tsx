@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useAppSelector } from '../../hooks/redux';
 import { monitoringService, loggingService, ServiceMetrics, LogLine } from '../../services/monitoring.service';
 
@@ -14,6 +14,7 @@ const LOG_LEVEL_COLOR: Record<string, string> = {
 };
 
 export default function MonitoringPage() {
+  const navigate = useNavigate();
   const { user } = useAppSelector((s) => s.auth);
   const [metrics, setMetrics] = useState<ServiceMetrics[]>([]);
   const [logs, setLogs] = useState<LogLine[]>([]);
@@ -32,10 +33,15 @@ export default function MonitoringPage() {
   ];
 
   useEffect(() => {
+    if (!user) {
+      navigate('/login');
+      return;
+    }
+
     fetchMetrics();
     const interval = setInterval(fetchMetrics, 30_000);
     return () => clearInterval(interval);
-  }, []);
+  }, [user, navigate]);
 
   useEffect(() => {
     fetchLogs();
@@ -250,7 +256,7 @@ export default function MonitoringPage() {
               { title: 'Pod Resources', desc: 'CPU and memory usage per pod', path: '/d/idp-pod-resources' },
               { title: 'Log Explorer', desc: 'Full-text log search via Loki', path: '/explore' },
             ].map((dash) => (
-              
+              <a
                 key={dash.title}
                 href={`http://localhost:3000${dash.path}`}
                 target="_blank"
