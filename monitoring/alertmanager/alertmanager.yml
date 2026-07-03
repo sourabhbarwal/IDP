@@ -1,0 +1,15 @@
+global:
+  resolve_timeout: 5m
+
+route:
+  receiver: default
+  group_by: ['alertname']
+  group_wait: 10s
+  group_interval: 30s
+  repeat_interval: 1h
+
+receivers:
+  - name: default
+    # No integrations configured yet — alerts will be visible in the
+    # AlertManager UI (http://localhost:9093) but not routed anywhere.
+    # Phase 8 will add email/Slack/webhook receivers here.

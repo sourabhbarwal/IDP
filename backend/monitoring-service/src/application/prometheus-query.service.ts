@@ -92,12 +92,12 @@ export class PrometheusQueryService {
 
   async getServiceMetrics(serviceName: string, namespace: string): Promise<ServiceMetrics> {
     const [requestRate, errorRate, p95Latency] = await Promise.allSettled([
-      this.queryInstant(`sum(rate(http_request_duration_ms_count{kubernetes_namespace="${namespace}"}[5m]))`),
+      this.queryInstant(`sum(rate(http_request_duration_ms_count{job="${serviceName}"}[5m]))`),
       this.queryInstant(
-        `sum(rate(http_request_duration_ms_count{kubernetes_namespace="${namespace}",status=~"5.."}[5m])) / sum(rate(http_request_duration_ms_count{kubernetes_namespace="${namespace}"}[5m]))`,
+        `sum(rate(http_request_duration_ms_count{job="${serviceName}",status=~"5.."}[5m])) / sum(rate(http_request_duration_ms_count{job="${serviceName}"}[5m]))`,
       ),
       this.queryInstant(
-        `histogram_quantile(0.95, sum(rate(http_request_duration_ms_bucket{kubernetes_namespace="${namespace}"}[5m])) by (le))`,
+        `histogram_quantile(0.95, sum(rate(http_request_duration_ms_bucket{job="${serviceName}"}[5m])) by (le))`,
       ),
     ]);
 
