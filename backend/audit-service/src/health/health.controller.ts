@@ -5,16 +5,8 @@ import { ApiOperation, ApiTags } from '@nestjs/swagger';
 @Controller('health')
 export class HealthController {
   private readonly startTime = Date.now();
-
-  @Get()
-  @ApiOperation({ summary: 'Liveness probe' })
-  liveness() {
-    return { status: 'UP', service: 'audit-service', timestamp: new Date().toISOString() };
-  }
-
-  @Get('ready')
-  @ApiOperation({ summary: 'Readiness probe' })
-  readiness() {
-    return { status: 'READY', service: 'audit-service', uptimeMs: Date.now() - this.startTime };
-  }
+  @Get() @ApiOperation({ summary: 'Liveness probe' })
+  liveness() { return { status: 'UP', service: 'audit-service', timestamp: new Date().toISOString() }; }
+  @Get('ready') @ApiOperation({ summary: 'Readiness probe' })
+  readiness() { return { status: 'READY', service: 'audit-service', uptimeMs: Date.now() - this.startTime }; }
 }

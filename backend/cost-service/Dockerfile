@@ -7,7 +7,7 @@ RUN npm install --workspaces --include-workspace-root
 COPY backend/common ./common
 COPY backend/cost-service ./cost-service
 RUN npm run build --workspace=common
-RUN npm run build --workspace/cost-service
+RUN npm run build --workspace=cost-service
 RUN npm prune --omit=dev --workspaces
 
 FROM node:20-alpine AS production

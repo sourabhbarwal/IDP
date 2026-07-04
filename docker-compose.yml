@@ -411,28 +411,36 @@ services:
       timeout: 5s
       retries: 3
 
+  # ── Phase 9 services ──────────────────────────────────────────────────────
   audit-service:
     build:
       context: .
       dockerfile: backend/audit-service/Dockerfile
       args:
         BUILD_REVISION: local
-        BUILD_DATE: "2024-01-01T00:00:00Z"
     container_name: idp-audit-service
     restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
     ports:
       - "3010:3010"
     environment:
       NODE_ENV: development
       PORT: 3010
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_USERNAME: idp
+      DB_PASSWORD: ***REMOVED***
+      DB_NAME: idp
       JWT_SECRET: ***REMOVED***
       JWT_ISSUER: idp-platform
+      ALLOWED_ORIGINS: http://localhost:5173
     healthcheck:
       test: ["CMD-SHELL", "wget -qO- http://localhost:3010/health || exit 1"]
       interval: 30s
       timeout: 5s
       retries: 3
-    profiles: ["stubs"]
 
   cost-service:
     build:
@@ -440,22 +448,36 @@ services:
       dockerfile: backend/cost-service/Dockerfile
       args:
         BUILD_REVISION: local
-        BUILD_DATE: "2024-01-01T00:00:00Z"
     container_name: idp-cost-service
     restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      prometheus:
+        condition: service_healthy
     ports:
       - "3011:3011"
     environment:
       NODE_ENV: development
       PORT: 3011
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_USERNAME: idp
+      DB_PASSWORD: ***REMOVED***
+      DB_NAME: idp
       JWT_SECRET: ***REMOVED***
       JWT_ISSUER: idp-platform
+      # Docker Compose DNS
+      PROMETHEUS_URL: http://prometheus:9090
+      # Price model (AWS t3.medium equivalent rates)
+      PRICE_CPU_PER_VCPU_HOUR: "0.048"
+      PRICE_MEMORY_PER_GB_HOUR: "0.006"
+      ALLOWED_ORIGINS: http://localhost:5173
     healthcheck:
       test: ["CMD-SHELL", "wget -qO- http://localhost:3011/health || exit 1"]
       interval: 30s
       timeout: 5s
       retries: 3
-    profiles: ["stubs"]
 
   # ── Frontend (use npm run dev locally; docker for testing builds) ─────────────
   frontend:
