@@ -2,8 +2,7 @@ global:
   scrape_interval: 15s
   evaluation_interval: 15s
   external_labels:
-    cluster: idp-platform-local
-    environment: development
+    environment: local-docker-compose
 
 rule_files:
   - /etc/prometheus/rules/*.yml
@@ -11,49 +10,57 @@ rule_files:
 alerting:
   alertmanagers:
     - static_configs:
-        - targets:
-            - alertmanager:9093
+        # Docker Compose DNS — alertmanager service name
+        - targets: ['alertmanager:9093']
 
 scrape_configs:
-  # Prometheus itself
   - job_name: prometheus
     static_configs:
       - targets: ['localhost:9090']
 
-  # IDP Platform services — autodiscovered via pod annotations
-  - job_name: idp-services
-    kubernetes_sd_configs:
-      - role: pod
-        namespaces:
-          names:
-            - dev-auth-service
-            - dev-service-catalog-service
-            - dev-repository-service
-            - dev-template-service
-            - dev-deployment-service
-            - platform
-    relabel_configs:
-      # Only scrape pods with prometheus.io/scrape=true annotation
-      - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_scrape]
-        action: keep
-        regex: "true"
-      # Use custom metrics path if specified
-      - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_path]
-        action: replace
-        target_label: __metrics_path__
-        regex: (.+)
-      # Use custom port if specified
-      - source_labels: [__address__, __meta_kubernetes_pod_annotation_prometheus_io_port]
-        action: replace
-        regex: ([^:]+)(?::\d+)?;(\d+)
-        replacement: $1:$2
-        target_label: __address__
-      # Add pod labels as metric labels
-      - action: labelmap
-        regex: __meta_kubernetes_pod_label_(.+)
-      - source_labels: [__meta_kubernetes_namespace]
-        action: replace
-        target_label: kubernetes_namespace
-      - source_labels: [__meta_kubernetes_pod_name]
-        action: replace
-        target_label: kubernetes_pod_name
+  # Scrape all IDP Platform NestJS services
+  # Docker Compose service names resolve inside the compose network
+  - job_name: auth-service
+    static_configs:
+      - targets: ['auth-service:3001']
+    metrics_path: /metrics
+
+  - job_name: service-catalog-service
+    static_configs:
+      - targets: ['service-catalog-service:3002']
+    metrics_path: /metrics
+
+  - job_name: repository-service
+    static_configs:
+      - targets: ['repository-service:3003']
+    metrics_path: /metrics
+
+  - job_name: template-service
+    static_configs:
+      - targets: ['template-service:3004']
+    metrics_path: /metrics
+
+  - job_name: deployment-service
+    static_configs:
+      - targets: ['deployment-service:3005']
+    metrics_path: /metrics
+
+  - job_name: monitoring-service
+    static_configs:
+      - targets: ['monitoring-service:3006']
+    metrics_path: /metrics
+
+  - job_name: logging-service
+    static_configs:
+      - targets: ['logging-service:3007']
+    metrics_path: /metrics
+
+  - job_name: alert-service
+    static_configs:
+      - targets: ['alert-service:3008']
+    metrics_path: /metrics
+
+  - job_name: notification-service
+    static_configs:
+      - targets: ['notification-service:3009']
+    metrics_path: /metrics

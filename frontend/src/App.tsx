@@ -9,6 +9,7 @@ import CreateServicePage from './pages/catalog/CreateServicePage';
 import ServiceDetailPage from './pages/catalog/ServiceDetailPage';
 import TemplateGalleryPage from './pages/templates/TemplateGalleryPage';
 import MonitoringPage from './pages/monitoring/MonitoringPage';
+import AlertsPage from './pages/alerts/AlertsPage';
 import ProtectedRoute from './components/layout/ProtectedRoute';
 
 export default function App() {
@@ -24,6 +25,7 @@ export default function App() {
           <Route path="/catalog/:id" element={<ProtectedRoute><ServiceDetailPage /></ProtectedRoute>} />
           <Route path="/templates" element={<ProtectedRoute><TemplateGalleryPage /></ProtectedRoute>} />
           <Route path="/monitoring" element={<ProtectedRoute><MonitoringPage /></ProtectedRoute>} />
+          <Route path="/alerts" element={<ProtectedRoute><AlertsPage /></ProtectedRoute>} />
           <Route path="*" element={<Navigate to="/login" replace />} />
         </Routes>
       </BrowserRouter>

@@ -2,14 +2,31 @@ global:
   resolve_timeout: 5m
 
 route:
-  receiver: default
-  group_by: ['alertname']
-  group_wait: 10s
-  group_interval: 30s
-  repeat_interval: 1h
+  group_by: ['alertname', 'namespace']
+  group_wait: 30s
+  group_interval: 5m
+  repeat_interval: 12h
+  receiver: notification-service-webhook
+  routes:
+    - match:
+        severity: critical
+      receiver: notification-service-webhook
+      group_wait: 10s
+    - match:
+        severity: warning
+      receiver: notification-service-webhook
 
 receivers:
-  - name: default
-    # No integrations configured yet — alerts will be visible in the
-    # AlertManager UI (http://localhost:9093) but not routed anywhere.
-    # Phase 8 will add email/Slack/webhook receivers here.
+  - name: notification-service-webhook
+    webhook_configs:
+      # Docker Compose DNS — notification-service is reachable by its service name
+      - url: 'http://notification-service:3009/api/v1/notifications/webhook/alertmanager'
+        send_resolved: true
+        max_alerts: 0
+
+inhibit_rules:
+  - source_match:
+      severity: critical
+    target_match:
+      severity: warning
+    equal: ['alertname', 'namespace']

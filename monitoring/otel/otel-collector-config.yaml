@@ -21,19 +21,10 @@ processors:
         action: upsert
 
 exporters:
-  # Log traces to console in development (replace with Tempo in production)
   debug:
     verbosity: normal
-  # Forward metrics to Prometheus
   prometheus:
     endpoint: "0.0.0.0:8889"
-  # Forward logs to Loki
-  loki:
-    endpoint: http://loki:3100/loki/api/v1/push
-    labels:
-      resource:
-        service.name: "service_name"
-        service.namespace: "namespace"
 
 service:
   pipelines:
@@ -45,7 +36,3 @@ service:
       receivers: [otlp]
       processors: [memory_limiter, batch]
       exporters: [prometheus]
-    logs:
-      receivers: [otlp]
-      processors: [memory_limiter, batch]
-      exporters: [loki]
