@@ -1,14 +1,15 @@
-/**
- * Security configuration unit tests.
- * Tests the security utility functions directly without booting NestJS
- * or connecting to a database. This runs as part of the standard unit
- * test suite in CI.
- *
- * The actual header presence on HTTP responses is verified during
- * manual smoke testing and docker-compose health checks.
- */
-import { applySecurity } from '@idp/common';
-import { THROTTLE_CONFIG_GLOBAL, THROTTLE_CONFIG_AUTH } from '@idp/common';
+import { applySecurity, THROTTLE_CONFIG_GLOBAL, THROTTLE_CONFIG_AUTH } from '@idp/common';
+
+interface ThrottlerEntry {
+  name: string;
+  limit: number;
+  ttl: number;
+}
+
+function getThrottler(config: typeof THROTTLE_CONFIG_GLOBAL, name: string): ThrottlerEntry | undefined {
+  const throttlers = (config.throttlers ?? []) as ThrottlerEntry[];
+  return throttlers.find((t) => t.name === name);
+}
 
 describe('applySecurity', () => {
   it('is exported and is a function', () => {
@@ -23,38 +24,40 @@ describe('applySecurity', () => {
 describe('THROTTLE_CONFIG_GLOBAL', () => {
   it('has a throttlers array', () => {
     expect(Array.isArray(THROTTLE_CONFIG_GLOBAL.throttlers)).toBe(true);
-    expect(THROTTLE_CONFIG_GLOBAL.throttlers!.length).toBeGreaterThan(0);
+    expect((THROTTLE_CONFIG_GLOBAL.throttlers ?? []).length).toBeGreaterThan(0);
   });
 
   it('global throttler allows 100 requests per 15 minutes', () => {
-    const throttlers = THROTTLE_CONFIG_GLOBAL.throttlers as Array<{
-      name: string; limit: number; ttl: number;
-    }>;
-    const global = throttlers.find((t) => t.name === 'global');
+    const global = getThrottler(THROTTLE_CONFIG_GLOBAL, 'global');
     expect(global).toBeDefined();
-    expect(global!.limit).toBe(100);
-    expect(global!.ttl).toBe(900_000);
+    expect(global?.limit).toBe(100);
+    expect(global?.ttl).toBe(900_000);
   });
 });
 
 describe('THROTTLE_CONFIG_AUTH', () => {
   it('has both global and auth throttlers', () => {
-    const throttlers = THROTTLE_CONFIG_AUTH.throttlers as Array<{
-      name: string; limit: number; ttl: number;
-    }>;
+    const throttlers = (THROTTLE_CONFIG_AUTH.throttlers ?? []) as ThrottlerEntry[];
     const names = throttlers.map((t) => t.name);
     expect(names).toContain('global');
     expect(names).toContain('auth');
   });
 
-  it('auth throttler is stricter than global (10 vs 100)', () => {
-    const throttlers = THROTTLE_CONFIG_AUTH.throttlers as Array<{
-      name: string; limit: number; ttl: number;
-    }>;
-    const auth = throttlers.find((t) => t.name === 'auth');
-    const global = throttlers.find((t) => t.name === 'global');
-    expect(auth!.limit).toBe(10);
-    expect(global!.limit).toBe(100);
-    expect(auth!.limit).toBeLessThan(global!.limit);
+  it('auth throttler limit is 10', () => {
+    const auth = getThrottler(THROTTLE_CONFIG_AUTH, 'auth');
+    expect(auth).toBeDefined();
+    expect(auth?.limit).toBe(10);
+  });
+
+  it('global throttler limit is 100', () => {
+    const global = getThrottler(THROTTLE_CONFIG_AUTH, 'global');
+    expect(global).toBeDefined();
+    expect(global?.limit).toBe(100);
+  });
+
+  it('auth throttler is stricter than global', () => {
+    const auth = getThrottler(THROTTLE_CONFIG_AUTH, 'auth');
+    const global = getThrottler(THROTTLE_CONFIG_AUTH, 'global');
+    expect((auth?.limit ?? 999)).toBeLessThan((global?.limit ?? 0));
   });
 });
