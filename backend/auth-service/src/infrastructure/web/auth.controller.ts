@@ -19,6 +19,7 @@ import { AuthResponseDto, UserResponseDto } from './dto/auth-response.dto';
 import { JwtAuthGuard } from '../../infrastructure/security/jwt-auth.guard';
 import { CurrentUser } from '../../infrastructure/security/decorators/current-user.decorator';
 import { AuthenticatedUser } from '../../infrastructure/security/jwt.strategy';
+import { Throttle, SkipThrottle } from '@nestjs/throttler';
 
 function clientIp(req: Request): string | null {
   return (req.headers['x-forwarded-for'] as string)?.split(',')[0]?.trim() ?? req.ip ?? null;
@@ -35,6 +36,7 @@ export class AuthController {
   ) {}
 
   @Post('register')
+  @Throttle({ auth: { limit: 10, ttl: 900_000 } })
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({ summary: 'Register a new user (assigned the DEVELOPER role by default)' })
   @ApiResponse({ status: 201, type: UserResponseDto })
@@ -57,6 +59,7 @@ export class AuthController {
   }
 
   @Post('login')
+  @Throttle({ auth: { limit: 10, ttl: 900_000 } })
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Authenticate and receive an access + refresh token pair' })
   @ApiResponse({ status: 200, type: AuthResponseDto })
@@ -78,6 +81,7 @@ export class AuthController {
   }
 
   @Post('refresh')
+  @Throttle({ auth: { limit: 30, ttl: 900_000 } })
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Exchange a refresh token for a new access + refresh token pair (rotation)' })
   @ApiResponse({ status: 200, type: AuthResponseDto })
@@ -98,6 +102,7 @@ export class AuthController {
   }
 
   @Post('logout')
+  @SkipThrottle()
   @HttpCode(HttpStatus.NO_CONTENT)
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()

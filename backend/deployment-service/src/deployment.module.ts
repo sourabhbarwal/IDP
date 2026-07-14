@@ -24,9 +24,14 @@ import { GetDeploymentUseCase } from './application/use-cases/get-deployment.use
 import { ListDeploymentsUseCase } from './application/use-cases/list-deployments.use-case';
 import { DeploymentsController } from './infrastructure/web/deployments.controller';
 import { HealthController } from './infrastructure/web/health.controller';
+import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
+import { THROTTLE_CONFIG_GLOBAL } from '@idp/common';
+import { APP_GUARD } from '@nestjs/core';
+
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true, load: [configuration], envFilePath: ['.env'] }),
+    ThrottlerModule.forRoot(THROTTLE_CONFIG_GLOBAL),
     TypeOrmModule.forRootAsync({ useFactory: typeOrmOptionsFactory, inject: [ConfigService] }),
     TypeOrmModule.forFeature([DeploymentOrmEntity, AuditLogOrmEntity]),
     PassportModule.register({ defaultStrategy: 'jwt' }),
@@ -38,6 +43,7 @@ import { HealthController } from './infrastructure/web/health.controller';
   controllers: [DeploymentsController, HealthController],
   providers: [
     { provide: DEPLOYMENT_REPOSITORY, useClass: DeploymentRepositoryAdapter },
+    { provide: APP_GUARD, useClass: ThrottlerGuard },
     { provide: KUBERNETES_CLIENT, useClass: K8sClientAdapter },
     { provide: AUDIT_PUBLISHER, useClass: LocalAuditPublisher },
     JwtStrategy,

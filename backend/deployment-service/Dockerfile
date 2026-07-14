@@ -3,7 +3,11 @@ WORKDIR /app
 COPY backend/package.json backend/tsconfig.base.json ./
 COPY backend/common/package.json ./common/
 COPY backend/deployment-service/package.json ./deployment-service/
-RUN npm install --workspaces --include-workspace-root
+RUN npm config set fetch-retries 5 && \
+    npm config set fetch-retry-mintimeout 20000 && \
+    npm config set fetch-retry-maxtimeout 120000 && \
+    npm config set fetch-timeout 60000 && \
+    npm install --workspaces --include-workspace-root
 COPY backend/common ./common
 COPY backend/deployment-service ./deployment-service
 RUN npm run build --workspace=common

@@ -1,9 +1,10 @@
 import { NestFactory } from '@nestjs/core';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { AuditModule } from './audit.module';
-
+import { applySecurity } from '@idp/common'; 
 async function bootstrap(): Promise<void> {
   const app = await NestFactory.create(AuditModule);
+  applySecurity(app);
   app.enableCors({ origin: process.env.ALLOWED_ORIGINS?.split(',') ?? ['http://localhost:5173'] });
 
   if (process.env.NODE_ENV !== 'production') {

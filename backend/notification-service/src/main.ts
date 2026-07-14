@@ -1,9 +1,10 @@
 import { NestFactory } from '@nestjs/core';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { NotificationModule } from './notification.module';
-
+import { applySecurity } from  '@idp/common';
 async function bootstrap(): Promise<void> {
   const app = await NestFactory.create(NotificationModule);
+  applySecurity(app);
   app.enableCors({ origin: process.env.ALLOWED_ORIGINS?.split(',') ?? ['http://localhost:5173'] });
   if (process.env.NODE_ENV !== 'production') {
     const config = new DocumentBuilder().setTitle('IDP — Notification Service').setDescription('Multi-channel alert delivery (Slack, Email, Webhook)').setVersion('0.1.0').build();

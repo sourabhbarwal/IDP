@@ -22,10 +22,13 @@ import { RepositoriesController } from './infrastructure/web/repositories.contro
 import { HealthController } from './infrastructure/web/health.controller';
 import { MiddlewareConsumer, NestModule } from '@nestjs/common';
 import { MetricsModule, MetricsMiddleware } from '@idp/common';
-
+import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
+import { THROTTLE_CONFIG_GLOBAL } from '@idp/common';
+import { APP_GUARD } from '@nestjs/core';
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true, load: [configuration], envFilePath: ['.env'] }),
+    ThrottlerModule.forRoot(THROTTLE_CONFIG_GLOBAL),
     TypeOrmModule.forRootAsync({ useFactory: typeOrmOptionsFactory, inject: [ConfigService] }),
     TypeOrmModule.forFeature([RepositoryOrmEntity, AuditLogOrmEntity]),
     PassportModule.register({ defaultStrategy: 'jwt' }),
@@ -38,6 +41,7 @@ import { MetricsModule, MetricsMiddleware } from '@idp/common';
   controllers: [RepositoriesController, HealthController ],
   providers: [
     { provide: REPOSITORY_REPOSITORY, useClass: RepositoryRepositoryAdapter },
+    { provide: APP_GUARD, useClass: ThrottlerGuard },
     { provide: GITHUB_CLIENT, useClass: OctokitGithubClient },
     { provide: AUDIT_PUBLISHER, useClass: LocalAuditPublisher },
     JwtStrategy,

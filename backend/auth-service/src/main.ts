@@ -2,13 +2,11 @@ import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { AuthModule } from './auth.module';
-import { GlobalExceptionFilter } from '@idp/common';
+import { GlobalExceptionFilter, applySecurity } from '@idp/common';
 
 async function bootstrap(): Promise<void> {
-  const app = await NestFactory.create(AuthModule, {
-    // Structured JSON logging — feeds into the OpenTelemetry/Loki pipeline (Phase 7)
-    logger: ['error', 'warn', 'log'],
-  });
+  const app = await NestFactory.create(AuthModule);
+  applySecurity(app);
 
   // ── Security Headers ─────────────────────────────────────────────────────────
   // Full security hardening (Helmet, rate limiting, CORS policy) is added in
@@ -27,7 +25,6 @@ async function bootstrap(): Promise<void> {
       whitelist: true,
       forbidNonWhitelisted: true,
       transform: true,
-      transformOptions: { enableImplicitConversion: true },
     }),
   );
 
@@ -46,14 +43,6 @@ async function bootstrap(): Promise<void> {
     const document = SwaggerModule.createDocument(app, config);
     SwaggerModule.setup('api/docs', app, document);
   }
-
-  // ── Health endpoint (Kubernetes liveness / readiness probe target) ────────────
-  // Full health checks (DB connectivity) are added via @nestjs/terminus in Phase 6.
-  // For now the /health path is handled by the actuator-style controller below.
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  app.getHttpAdapter().get('/health', (req: any, res: any) => {
-    res.status(200).send({ status: 'UP' });
-  });
 
   const port = process.env.PORT ?? 3001;
   await app.listen(port);

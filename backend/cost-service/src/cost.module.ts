@@ -9,10 +9,13 @@ import { JwtStrategy } from './infrastructure/security/jwt.strategy';
 import { CostAnalysisService } from './application/cost-analysis.service';
 import { CostController } from './infrastructure/web/cost.controller';
 import { HealthController } from './health/health.controller';
-
+import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
+import { THROTTLE_CONFIG_GLOBAL } from '@idp/common';
+import { APP_GUARD } from '@nestjs/core';
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true, load: [configuration], envFilePath: ['.env'] }),
+    ThrottlerModule.forRoot(THROTTLE_CONFIG_GLOBAL),
     PassportModule.register({ defaultStrategy: 'jwt' }),
     JwtModule.registerAsync({
       useFactory: (config: ConfigService) => ({ secret: config.get<string>('JWT_SECRET') }),
@@ -24,6 +27,7 @@ import { HealthController } from './health/health.controller';
     JwtStrategy,
     CostAnalysisService,
     { provide: APP_FILTER, useClass: GlobalExceptionFilter },
+    { provide: APP_GUARD, useClass: ThrottlerGuard },
   ],
 })
 export class CostModule {}

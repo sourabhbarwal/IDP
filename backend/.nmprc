@@ -1,0 +1,4 @@
+# Only fail CI audits on production dependency vulnerabilities.
+# DevDependency vulnerabilities are tracked separately and do not
+# affect deployed Docker images (multi-stage builds omit devDependencies).
+audit-level=high

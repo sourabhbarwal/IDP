@@ -22,10 +22,13 @@ import { AcknowledgeAlertUseCase } from './application/use-cases/acknowledge-ale
 import { ProcessAlertManagerWebhookUseCase } from './application/use-cases/process-alertmanager-webhook.use-case';
 import { AlertsController } from './infrastructure/web/alerts.controller';
 import { HealthController } from './health/health.controller';
-
+import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
+import { THROTTLE_CONFIG_GLOBAL } from '@idp/common';
+import { APP_GUARD } from '@nestjs/core';
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true, load: [configuration], envFilePath: ['.env'] }),
+    ThrottlerModule.forRoot(THROTTLE_CONFIG_GLOBAL),
     TypeOrmModule.forRootAsync({ useFactory: typeOrmOptionsFactory, inject: [ConfigService] }),
     TypeOrmModule.forFeature([AlertRuleOrmEntity, AlertEventOrmEntity, AuditLogOrmEntity]),
     PassportModule.register({ defaultStrategy: 'jwt' }),
@@ -37,6 +40,7 @@ import { HealthController } from './health/health.controller';
   controllers: [AlertsController, HealthController],
   providers: [
     { provide: ALERT_RULE_REPOSITORY, useClass: AlertRuleRepositoryAdapter },
+    { provide: APP_GUARD, useClass: ThrottlerGuard },
     { provide: ALERT_EVENT_REPOSITORY, useClass: AlertEventRepositoryAdapter },
     { provide: AUDIT_PUBLISHER, useClass: LocalAuditPublisher },
     JwtStrategy,

@@ -19,9 +19,11 @@
     "@nestjs/core": "^10.4.4",
     "@nestjs/platform-express": "^10.4.4",
     "@nestjs/swagger": "^7.4.0",
+    "@nestjs/throttler": "^6.5.0",
     "class-transformer": "^0.5.1",
     "class-validator": "^0.14.1",
-    "nodemailer": "^6.9.15",
+    "helmet": "^8.2.0",
+    "nodemailer": "^9.0.3",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.1"
   },
@@ -43,16 +45,33 @@
     "typescript": "^5.5.4"
   },
   "jest": {
-    "moduleFileExtensions": ["js", "json", "ts"],
+    "moduleFileExtensions": [
+      "js",
+      "json",
+      "ts"
+    ],
     "rootDir": "src",
     "testRegex": ".*\\.spec\\.ts$",
-    "transform": { "^.+\\.ts$": "ts-jest" },
-    "moduleNameMapper": { "^@idp/common$": "<rootDir>/../../common/src/index.ts" },
-    "collectCoverageFrom": ["application/**/*.ts", "domain/**/*.ts", "!**/*.spec.ts"],
+    "transform": {
+      "^.+\\.ts$": "ts-jest"
+    },
+    "moduleNameMapper": {
+      "^@idp/common$": "<rootDir>/../../common/src/index.ts"
+    },
+    "collectCoverageFrom": [
+      "application/**/*.ts",
+      "domain/**/*.ts",
+      "!**/*.spec.ts"
+    ],
     "coverageDirectory": "../coverage",
     "testEnvironment": "node",
     "coverageThreshold": {
-      "global": { "lines": 80, "statements": 80, "branches": 65, "functions": 80 }
+      "global": {
+        "lines": 80,
+        "statements": 80,
+        "branches": 65,
+        "functions": 80
+      }
     }
   }
 }

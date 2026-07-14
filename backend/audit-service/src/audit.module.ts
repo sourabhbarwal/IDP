@@ -10,10 +10,13 @@ import { JwtStrategy } from './infrastructure/security/jwt.strategy';
 import { AuditQueryService } from './application/audit-query.service';
 import { AuditController } from './infrastructure/web/audit.controller';
 import { HealthController } from './health/health.controller';
-
+import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
+import { THROTTLE_CONFIG_GLOBAL } from '@idp/common';
+import { APP_GUARD } from '@nestjs/core';
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true, load: [configuration], envFilePath: ['.env'] }),
+    ThrottlerModule.forRoot(THROTTLE_CONFIG_GLOBAL),
     TypeOrmModule.forRootAsync({
       useFactory: (config: ConfigService) => ({
         type: 'postgres',
@@ -40,6 +43,7 @@ import { HealthController } from './health/health.controller';
     JwtStrategy,
     AuditQueryService,
     { provide: APP_FILTER, useClass: GlobalExceptionFilter },
+    { provide: APP_GUARD, useClass: ThrottlerGuard },
   ],
 })
 export class AuditModule {}

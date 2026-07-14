@@ -1,0 +1,21 @@
+title = "IDP Platform Gitleaks Config"
+
+[allowlist]
+  description = "Allowlisted patterns that are not real secrets"
+  paths = [
+    ".env.example",
+    "docs/",
+    "README.md",
+  ]
+  regexes = [
+    # Placeholder values in .env.example files
+    "change-me.*",
+    "your-github-.*",
+    "your-.*-here",
+    "***REMOVED***",
+    "***REMOVED***",
+    "local-dev-only-secret.*",
+    "***REMOVED***",
+    "integration-test-secret.*",
+    "ci-integration-test-secret.*",
+  ]

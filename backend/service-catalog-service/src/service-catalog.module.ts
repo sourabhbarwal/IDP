@@ -24,10 +24,14 @@ import { ServicesController } from './infrastructure/web/services.controller';
 import { HealthController } from './infrastructure/web/health.controller';
 import { MiddlewareConsumer, NestModule } from '@nestjs/common';
 import { MetricsModule, MetricsMiddleware } from '@idp/common';
+import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
+import { THROTTLE_CONFIG_GLOBAL } from '@idp/common';
+import { APP_GUARD } from '@nestjs/core';
 
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true, load: [configuration], envFilePath: ['.env'] }),
+    ThrottlerModule.forRoot(THROTTLE_CONFIG_GLOBAL),
     TypeOrmModule.forRootAsync({ useFactory: typeOrmOptionsFactory, inject: [ConfigService] }),
     TypeOrmModule.forFeature([ServiceOrmEntity, ServiceVersionOrmEntity, AuditLogOrmEntity]),
     PassportModule.register({ defaultStrategy: 'jwt' }),
@@ -42,6 +46,7 @@ import { MetricsModule, MetricsMiddleware } from '@idp/common';
     { provide: SERVICE_REPOSITORY, useClass: ServiceRepositoryAdapter },
     { provide: SERVICE_VERSION_REPOSITORY, useClass: ServiceVersionRepositoryAdapter },
     { provide: AUDIT_PUBLISHER, useClass: LocalAuditPublisher },
+    { provide: APP_GUARD, useClass: ThrottlerGuard },
     JwtStrategy,
     CreateServiceUseCase,
     GetServiceUseCase,

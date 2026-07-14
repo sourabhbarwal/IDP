@@ -37,6 +37,10 @@ jobs:
       - name: Install dependencies
         working-directory: backend
         run: npm ci
+      - name: Audit production dependencies for vulnerabilities
+        working-directory: backend
+        run: npm audit --audit-level=critical --omit=dev --workspace=auth-service
+        continue-on-error: false
       - name: Build common
         working-directory: backend
         run: npm run build --workspace=common

@@ -2,10 +2,11 @@ import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { RepositoryModule } from './repository.module';
-import { GlobalExceptionFilter } from '@idp/common';
+import { GlobalExceptionFilter, applySecurity } from '@idp/common';
 
 async function bootstrap(): Promise<void> {
   const app = await NestFactory.create(RepositoryModule);
+  applySecurity(app);
   app.enableCors({ origin: process.env.ALLOWED_ORIGINS?.split(',') ?? ['http://localhost:5173'], credentials: true });
   app.useGlobalPipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }));
   app.useGlobalFilters(new GlobalExceptionFilter());

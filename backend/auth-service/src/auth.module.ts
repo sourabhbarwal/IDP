@@ -48,7 +48,9 @@ import { UsersController } from './infrastructure/web/users.controller';
 
 import { MiddlewareConsumer, NestModule } from '@nestjs/common';
 import { MetricsModule, MetricsMiddleware } from '@idp/common';
-
+import { APP_GUARD } from '@nestjs/core';
+import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
+import { THROTTLE_CONFIG_AUTH} from '@idp/common';
 
 @Module({
   imports: [
@@ -58,6 +60,8 @@ import { MetricsModule, MetricsMiddleware } from '@idp/common';
       load: [configuration],
       envFilePath: ['.env'],
     }),
+
+    ThrottlerModule.forRoot(THROTTLE_CONFIG_AUTH),
 
     // Database
     TypeOrmModule.forRootAsync({
@@ -94,7 +98,7 @@ import { MetricsModule, MetricsMiddleware } from '@idp/common';
     { provide: USER_REPOSITORY, useClass: UserRepositoryAdapter },
     { provide: ROLE_REPOSITORY, useClass: RoleRepositoryAdapter },
     { provide: REFRESH_TOKEN_REPOSITORY, useClass: RefreshTokenRepositoryAdapter },
-
+    { provide: APP_GUARD, useClass: ThrottlerGuard },
     // Application port implementations
     { provide: PASSWORD_HASHER, useClass: BcryptPasswordHasher },
     { provide: TOKEN_PROVIDER, useClass: JwtTokenProvider },

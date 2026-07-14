@@ -12,10 +12,14 @@ import { TemplatesController } from './infrastructure/web/templates.controller';
 import { HealthController } from './infrastructure/web/health.controller';
 import { MiddlewareConsumer, NestModule } from '@nestjs/common';
 import { MetricsModule, MetricsMiddleware } from '@idp/common';
+import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
+import { THROTTLE_CONFIG_GLOBAL } from '@idp/common';
+import { APP_GUARD } from '@nestjs/core';
 
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true, load: [configuration], envFilePath: ['.env'] }),
+    ThrottlerModule.forRoot(THROTTLE_CONFIG_GLOBAL),
     PassportModule.register({ defaultStrategy: 'jwt' }),
     JwtModule.registerAsync({
       useFactory: (config: ConfigService) => ({ secret: config.get<string>('JWT_SECRET') }),
@@ -27,6 +31,7 @@ import { MetricsModule, MetricsMiddleware } from '@idp/common';
   providers: [
     JwtStrategy,
     TemplateRegistryService,
+    { provide: APP_GUARD, useClass: ThrottlerGuard },
     ZipBuilderService,
     ListTemplatesUseCase,
     GenerateTemplateUseCase,

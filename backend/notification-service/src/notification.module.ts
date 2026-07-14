@@ -5,13 +5,17 @@ import { GlobalExceptionFilter } from '@idp/common';
 import { NotificationsController } from './infrastructure/web/notifications.controller';
 import { HealthController } from './health/health.controller';
 import { NotificationDispatcherService } from './application/services/notification-dispatcher.service';
+import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
+import { THROTTLE_CONFIG_GLOBAL } from '@idp/common';
+import { APP_GUARD } from '@nestjs/core';
 
 @Module({
-  imports: [ConfigModule.forRoot({ isGlobal: true, envFilePath: ['.env'] })],
+  imports: [ConfigModule.forRoot({ isGlobal: true, envFilePath: ['.env'] }),ThrottlerModule.forRoot(THROTTLE_CONFIG_GLOBAL),],
   controllers: [NotificationsController, HealthController],
   providers: [
     NotificationDispatcherService,
     { provide: APP_FILTER, useClass: GlobalExceptionFilter },
+    { provide: APP_GUARD, useClass: ThrottlerGuard },
   ],
 })
 export class NotificationModule {}

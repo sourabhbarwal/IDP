@@ -2,10 +2,12 @@ import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { ServiceCatalogModule } from './service-catalog.module';
-import { GlobalExceptionFilter } from '@idp/common';
+import { GlobalExceptionFilter, applySecurity } from '@idp/common';
 
 async function bootstrap(): Promise<void> {
   const app = await NestFactory.create(ServiceCatalogModule);
+
+  applySecurity(app);
 
   app.enableCors({
     origin: process.env.ALLOWED_ORIGINS?.split(',') ?? ['http://localhost:5173'],
@@ -16,7 +18,6 @@ async function bootstrap(): Promise<void> {
     whitelist: true,
     forbidNonWhitelisted: true,
     transform: true,
-    transformOptions: { enableImplicitConversion: true },
   }));
 
   app.useGlobalFilters(new GlobalExceptionFilter());

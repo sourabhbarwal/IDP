@@ -88,3 +88,19 @@ Thumbs.db
 **/playwright-report/
 **/.pytest_cache/
 **/__pycache__/
+
+# =========================================================
+# ── Security — never commit these ──────────────────────────────────────────
+# =========================================================
+*.pem
+*.key
+*.p12
+*.pfx
+*.crt
+*.cer
+id_rsa
+id_ed25519
+.env.local
+.env.production
+.env.staging
+secrets/

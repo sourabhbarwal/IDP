@@ -36,6 +36,10 @@ jobs:
           cache-dependency-path: backend/package-lock.json
       - working-directory: backend
         run: npm ci
+      - name: Audit production dependencies for vulnerabilities
+        working-directory: backend
+        run: npm audit --audit-level=critical --omit=dev --workspace=service-catalog-service
+        continue-on-error: false
       - working-directory: backend
         run: npm run build --workspace=common
       - working-directory: backend/service-catalog-service
