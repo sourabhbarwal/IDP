@@ -5,7 +5,6 @@ import {
   copilotService,
   CopilotMode,
   ChatMessage,
-  CopilotChatResponse,
 } from '../../services/copilot.service';
 import ReactMarkdown from 'react-markdown';
 
