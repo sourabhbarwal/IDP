@@ -1,83 +1,86 @@
-# IDP Platform — AI-Native Internal Developer Platform
+# IDP Platform — Enterprise AI-Native Internal Developer Platform
 
-An enterprise-grade Internal Developer Platform (IDP) that lets developers create services,
-provision repositories, generate project templates, deploy to Kubernetes, observe production
-systems, manage costs and secrets, and get AI-powered operational assistance — all from a
-single portal.
+A fully-featured Internal Developer Platform built with NestJS microservices,
+React frontend, PostgreSQL, and a complete observability stack.
 
-## Status
+## Architecture
 
-This project is being built incrementally, phase by phase. See `docs/architecture/` for
-design documentation and `docs/adr/` for architecture decision records.
+11 microservices + React frontend running via Docker Compose.
 
-## Repository Structure
+| Service | Port | Responsibility |
+|---|---|---|
+| auth-service | 3001 | JWT/RBAC authentication |
+| service-catalog-service | 3002 | Service registry |
+| repository-service | 3003 | GitHub repo provisioning |
+| template-service | 3004 | Project template generation |
+| deployment-service | 3005 | Rolling/blue-green/canary deployments |
+| monitoring-service | 3006 | Prometheus metrics proxy |
+| logging-service | 3007 | Loki log query proxy |
+| alert-service | 3008 | Alert rules + AlertManager |
+| notification-service | 3009 | Slack/Email/Webhook delivery |
+| audit-service | 3010 | Cross-service audit trail |
+| cost-service | 3011 | Resource cost analytics |
+| frontend | 5173 | React dashboard |
 
+## Observability Stack
+| Tool | Port | Purpose |
+|---|---|---|
+| Prometheus | 9090 | Metrics collection |
+| Grafana | 3000 | Dashboards (admin / ***REMOVED***) |
+| Loki | 3100 | Log aggregation |
+| AlertManager | 9093 | Alert routing |
+
+## Quick Start
+
+```bash
+# Prerequisites: Docker Desktop, Node.js 20
+git clone https://github.com/sourabhbarwal/IDP.git
+cd IDP
+
+# Start full platform (13 containers)
+docker compose up -d
+
+# Check all services are healthy
+docker compose ps
+
+# Open the portal
+open http://localhost:5173
+
+# Default credentials (development only)
+# email: dev@example.com
+# password: S3cure!Passw0rd
 ```
-idp-platform/
-├── frontend/           # React + TypeScript + Tailwind + ShadCN UI portal
-├── backend/            # NestJS/TypeScript microservices (one folder per service)
-│   ├── auth-service
-│   ├── service-catalog-service
-│   ├── repository-service
-│   ├── template-service
-│   ├── deployment-service
-│   ├── monitoring-service
-│   ├── logging-service
-│   ├── alert-service
-│   ├── notification-service
-│   ├── audit-service
-│   └── cost-service
-├── infrastructure/
-│   ├── terraform/      # AWS infra: EKS, RDS, ElastiCache, S3, IAM, ECR, Route53
-│   ├── helm/            # Helm charts for platform + generated services
-│   └── kubernetes/      # Raw manifests / kustomize bases
-├── monitoring/
-│   ├── prometheus/      # Scrape configs, recording/alerting rules
-│   ├── grafana/         # Dashboards as code
-│   ├── loki/            # Log aggregation config
-│   ├── alertmanager/    # Alert routing
-│   └── otel/            # OpenTelemetry collector config
-├── ai-copilot/          # AI Copilot Layer (chat, incident investigator, cost/security advisors)
-├── templates/           # Project generator templates (Spring Boot, Node.js, FastAPI, Go)
-├── docs/
-│   ├── adr/             # Architecture Decision Records
-│   ├── architecture/    # System diagrams & design docs
-│   ├── api/             # OpenAPI specs
-│   └── runbooks/        # Operational runbooks
-├── tests/
-│   ├── e2e/             # Playwright end-to-end tests
-│   └── load/            # k6 load tests
-└── .github/workflows/   # CI/CD pipelines
+
+## Development
+
+```bash
+cd backend
+npm install
+npm run build --workspace=common
+
+# Run a specific service locally (outside docker)
+cd auth-service
+npm run start:dev
 ```
 
 ## Tech Stack
+- **Backend:** NestJS v10, TypeScript, TypeORM, PostgreSQL
+- **Frontend:** React, TypeScript, Tailwind CSS, Redux Toolkit
+- **Observability:** Prometheus, Grafana, Loki, AlertManager, OTel Collector
+- **CI:** GitHub Actions (lint, test, build, Trivy scan, CodeQL, Gitleaks)
+- **Local Runtime:** Docker Compose
+- **Production Target:** kind + Helm (see infrastructure/)
 
-| Layer          | Technology |
-|----------------|------------|
-| Frontend       | React 18, TypeScript, TailwindCSS, Redux Toolkit, React Router, Axios, React Hook Form, Zod, Recharts, TanStack Table, ShadCN UI |
-| Backend        | Node.js 20 LTS, NestJS, TypeScript, TypeORM, class-validator, Passport JWT, OpenAPI (Swagger) — see ADR-0004 |
-| Database       | PostgreSQL |
-| Cache          | Redis |
-| Infra          | Docker, Kubernetes, Helm, Terraform |
-| Cloud          | AWS (EKS, RDS, ElastiCache, S3, IAM, ECR, CloudWatch, Route53) |
-| Observability  | Prometheus, Grafana, Loki, AlertManager, OpenTelemetry |
-| CI/CD          | GitHub Actions |
-| AI Layer       | AI Copilot (chat, incident investigation, cost & security advisors, doc generation) |
-
-## Development Phases
-
-The platform is built in 11 phases (Auth → Service Catalog → GitHub Integration →
-Templates → Docker → Kubernetes Deployments → Observability → Alerting → Cost Analytics →
-Security Hardening → AI Copilot). Each phase has its own checkpoint verification steps —
-see `docs/architecture/roadmap.md`.
-
-## Getting Started
-
-Setup instructions per component will be added as each phase lands:
-- Backend services: `backend/<service>/README.md`
-- Frontend: `frontend/README.md`
-- Infrastructure: `infrastructure/terraform/README.md`
-
-## License
-
-Internal / Proprietary (adjust as needed for your organization).
+## ADR Index
+- ADR-0001: Monorepo structure
+- ADR-0002: DDD bounded contexts
+- ADR-0003: JWT auth strategy
+- ADR-0004: NestJS/TypeScript backend
+- ADR-0005: GitHub integration
+- ADR-0006: Container security hardening
+- ADR-0007: Local-first deployment
+- ADR-0008: Kubernetes deployment strategy
+- ADR-0009: Observability stack
+- ADR-0010: Local runtime — Docker Compose
+- ADR-0011: Cost analytics strategy
+- ADR-0012: Security hardening
