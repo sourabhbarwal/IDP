@@ -12,6 +12,7 @@ import MonitoringPage from './pages/monitoring/MonitoringPage';
 import AlertsPage from './pages/alerts/AlertsPage';
 import CostPage from './pages/cost/CostPage';
 import ProtectedRoute from './components/layout/ProtectedRoute';
+import CopilotPage from './pages/copilot/CopilotPage';
 
 export default function App() {
   return (
@@ -29,6 +30,7 @@ export default function App() {
           <Route path="/alerts" element={<ProtectedRoute><AlertsPage /></ProtectedRoute>} />
           <Route path="/cost" element={<ProtectedRoute><CostPage /></ProtectedRoute>} />
           <Route path="*" element={<Navigate to="/login" replace />} />
+          <Route path="/copilot" element={<ProtectedRoute><CopilotPage /></ProtectedRoute>} />
         </Routes>
       </BrowserRouter>
     </Provider>

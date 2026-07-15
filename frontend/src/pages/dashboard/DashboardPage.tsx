@@ -160,12 +160,13 @@ export default function DashboardPage() {
             <p className="text-xs text-primary-600 mt-3 font-medium">Open →</p>
           </Link>
           
-          <div className="bg-white rounded-2xl shadow-sm border border-dashed border-gray-200 p-6 opacity-60">
+          <Link to="/copilot"
+            className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 hover:border-primary-300 hover:shadow-md transition-all group">
             <div className="text-3xl mb-3">🤖</div>
-            <h3 className="font-semibold text-gray-800">AI Copilot</h3>
-            <p className="text-sm text-gray-500 mt-1">AI-powered operational assistance</p>
-            <span className="inline-block mt-3 text-xs px-2 py-0.5 rounded bg-gray-100 text-gray-500">Phase 11</span>
-          </div>
+            <h3 className="font-semibold text-gray-800 group-hover:text-primary-600">AI Copilot</h3>
+            <p className="text-sm text-gray-500 mt-1">Chat, incident investigation, cost advice</p>
+            <p className="text-xs text-primary-600 mt-3 font-medium">Open →</p>
+          </Link>
         </div>
       </main>
     </div>

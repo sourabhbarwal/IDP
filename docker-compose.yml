@@ -487,6 +487,43 @@ services:
       timeout: 5s
       retries: 3
 
+  # ── Phase 11 — AI Copilot ─────────────────────────────────────────────────
+  ai-copilot-service:
+    build:
+      context: .
+      dockerfile: backend/ai-copilot-service/Dockerfile
+      args:
+        BUILD_REVISION: local
+    container_name: idp-ai-copilot-service
+    restart: unless-stopped
+    ports:
+      - "3012:3012"
+    environment:
+      NODE_ENV: development
+      PORT: 3012
+      JWT_SECRET: ***REMOVED***
+      JWT_ISSUER: idp-platform
+      # Groq API
+      GROQ_API_KEY: ${GROQ_API_KEY}
+      GROQ_MODEL: openai/gpt-oss-120b
+      GROQ_MAX_TOKENS: "1024"
+      # Docker Compose DNS — live platform data for context
+      ALERT_SERVICE_URL: http://alert-service:3008
+      COST_SERVICE_URL: http://cost-service:3011
+      MONITORING_SERVICE_URL: http://monitoring-service:3006
+      LOGGING_SERVICE_URL: http://logging-service:3007
+      ALLOWED_ORIGINS: http://localhost:5173
+    depends_on:
+      alert-service:
+        condition: service_healthy
+      cost-service:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:3012/health || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
   # ── Frontend (use npm run dev locally; docker for testing builds) ─────────────
   frontend:
     build:

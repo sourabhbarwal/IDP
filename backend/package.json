@@ -15,7 +15,8 @@
     "alert-service",
     "notification-service",
     "audit-service",
-    "cost-service"
+    "cost-service",
+    "ai-copilot-service"
   ],
   "engines": { "node": ">=20.0.0" },
   "scripts": {

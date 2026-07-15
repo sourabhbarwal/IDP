@@ -1,0 +1,32 @@
+FROM node:20-alpine AS builder
+WORKDIR /app
+COPY backend/package.json backend/tsconfig.base.json ./
+COPY backend/common/package.json ./common/
+COPY backend/ai-copilot-service/package.json ./ai-copilot-service/
+RUN npm install --workspaces --include-workspace-root
+COPY backend/common ./common
+COPY backend/ai-copilot-service ./ai-copilot-service
+RUN npm run build --workspace=common
+RUN npm run build --workspace=ai-copilot-service
+RUN npm prune --omit=dev --workspaces
+
+FROM node:20-alpine AS production
+ARG BUILD_REVISION=unknown
+ARG BUILD_DATE=unknown
+LABEL org.opencontainers.image.title="IDP Platform - AI Copilot Service" \
+      org.opencontainers.image.description="AI-powered platform assistant (Groq/llama3)" \
+      org.opencontainers.image.revision="${BUILD_REVISION}" \
+      org.opencontainers.image.created="${BUILD_DATE}"
+RUN addgroup -S idp && adduser -S idp -G idp
+WORKDIR /app
+COPY --from=builder --chown=idp:idp /app/node_modules ./node_modules
+COPY --from=builder --chown=idp:idp /app/common/dist ./common/dist
+COPY --from=builder --chown=idp:idp /app/common/package.json ./common/package.json
+COPY --from=builder --chown=idp:idp /app/ai-copilot-service/dist ./ai-copilot-service/dist
+COPY --from=builder --chown=idp:idp /app/ai-copilot-service/package.json ./ai-copilot-service/package.json
+USER idp
+EXPOSE 3012
+HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=3 \
+  CMD wget -qO- http://localhost:3012/health || exit 1
+WORKDIR /app/ai-copilot-service
+CMD ["node", "dist/main.js"]
