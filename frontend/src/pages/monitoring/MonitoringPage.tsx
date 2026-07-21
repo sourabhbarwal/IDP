@@ -23,15 +23,7 @@ export default function MonitoringPage() {
   const [metricsLoading, setMetricsLoading] = useState(true);
   const [logsLoading, setLogsLoading] = useState(false);
   const [metricsError, setMetricsError] = useState<string | null>(null);
-
-  const services = [
-    'auth-service',
-    'service-catalog-service',
-    'repository-service',
-    'template-service',
-    'deployment-service',
-  ];
-
+  const [services, setServices] = useState<string[]>([]);
   useEffect(() => {
     if (!user) {
       navigate('/login');
@@ -52,6 +44,7 @@ export default function MonitoringPage() {
       setMetricsError(null);
       const { data } = await monitoringService.getAllServicesMetrics();
       setMetrics(data);
+      setServices(data.map((m) => m.service).sort());
     } catch {
       setMetricsError('Monitoring service unavailable — start monitoring-service to see live metrics');
     } finally {

@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module ,MiddlewareConsumer, NestModule} from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { JwtModule } from '@nestjs/jwt';
@@ -23,7 +23,7 @@ import { ProcessAlertManagerWebhookUseCase } from './application/use-cases/proce
 import { AlertsController } from './infrastructure/web/alerts.controller';
 import { HealthController } from './health/health.controller';
 import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
-import { THROTTLE_CONFIG_GLOBAL } from '@idp/common';
+import { THROTTLE_CONFIG_GLOBAL, MetricsModule, MetricsMiddleware } from '@idp/common';
 import { APP_GUARD } from '@nestjs/core';
 @Module({
   imports: [
@@ -36,6 +36,7 @@ import { APP_GUARD } from '@nestjs/core';
       useFactory: (config: ConfigService) => ({ secret: config.get<string>('JWT_SECRET') }),
       inject: [ConfigService],
     }),
+    MetricsModule,
   ],
   controllers: [AlertsController, HealthController],
   providers: [
@@ -51,4 +52,8 @@ import { APP_GUARD } from '@nestjs/core';
     ProcessAlertManagerWebhookUseCase,
   ],
 })
-export class AlertModule {}
+export class AlertModule implements NestModule {   // ← added implements
+  configure(consumer: MiddlewareConsumer): void {        // ← added
+    consumer.apply(MetricsMiddleware).forRoutes('*');
+  }
+}

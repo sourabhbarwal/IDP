@@ -1,7 +1,9 @@
 import { Controller, Get } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
+import { SkipThrottle } from '@nestjs/throttler';
 
 @ApiTags('health')
+@SkipThrottle({ global: true, auth: true })
 @Controller('health')
 export class HealthController {
   private readonly startTime = Date.now();

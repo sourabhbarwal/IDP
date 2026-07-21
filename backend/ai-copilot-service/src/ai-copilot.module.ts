@@ -1,10 +1,10 @@
-import { Module } from '@nestjs/common';
+import { Module, MiddlewareConsumer, NestModule } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { JwtModule } from '@nestjs/jwt';
 import { PassportModule } from '@nestjs/passport';
 import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
 import { APP_FILTER, APP_GUARD } from '@nestjs/core';
-import { GlobalExceptionFilter, THROTTLE_CONFIG_GLOBAL } from '@idp/common';
+import { GlobalExceptionFilter, THROTTLE_CONFIG_GLOBAL, MetricsModule, MetricsMiddleware } from '@idp/common';
 import { JwtStrategy } from './infrastructure/security/jwt.strategy';
 import { CopilotService } from './application/copilot.service';
 import { GroqClientService } from './application/groq-client.service';
@@ -21,6 +21,7 @@ import { HealthController } from './health/health.controller';
       useFactory: (config: ConfigService) => ({ secret: config.get<string>('JWT_SECRET') }),
       inject: [ConfigService],
     }),
+    MetricsModule,   // ← added
   ],
   controllers: [CopilotController, HealthController],
   providers: [
@@ -32,4 +33,8 @@ import { HealthController } from './health/health.controller';
     { provide: APP_FILTER, useClass: GlobalExceptionFilter },
   ],
 })
-export class AiCopilotModule {}
+export class AiCopilotModule implements NestModule {   // ← added implements
+  configure(consumer: MiddlewareConsumer): void {        // ← added
+    consumer.apply(MetricsMiddleware).forRoutes('*');
+  }
+}

@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy } from 'passport-jwt';
+import { Request } from 'express';
 
 export interface AuthenticatedUser {
   userId: string;
@@ -24,10 +25,14 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
   }
 
   validate(
-    req: { headers: { authorization?: string } },
+    req: Request,
     payload: { sub: string; email: string; roles: string[]; permissions: string[] },
   ): AuthenticatedUser {
-    const rawToken = (req.headers.authorization ?? '').replace('Bearer ', '');
+    const authHeader = req.headers['authorization'] ?? '';
+    const rawToken = authHeader.startsWith('Bearer ')
+      ? authHeader.slice(7)
+      : authHeader;
+
     return {
       userId: payload.sub,
       email: payload.email,

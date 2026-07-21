@@ -64,3 +64,18 @@ scrape_configs:
     static_configs:
       - targets: ['notification-service:3009']
     metrics_path: /metrics
+
+  - job_name: audit-service
+    static_configs:
+      - targets: ['audit-service:3010']
+    metrics_path: /metrics
+
+  - job_name: cost-service
+    static_configs:
+      - targets: ['cost-service:3011']
+    metrics_path: /metrics
+
+  - job_name: ai-copilot-service
+    static_configs:
+      - targets: ['ai-copilot-service:3012']
+    metrics_path: /metrics

@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module,MiddlewareConsumer, NestModule } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { JwtModule } from '@nestjs/jwt';
 import { PassportModule } from '@nestjs/passport';
@@ -10,7 +10,7 @@ import { CostAnalysisService } from './application/cost-analysis.service';
 import { CostController } from './infrastructure/web/cost.controller';
 import { HealthController } from './health/health.controller';
 import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
-import { THROTTLE_CONFIG_GLOBAL } from '@idp/common';
+import { THROTTLE_CONFIG_GLOBAL, MetricsModule, MetricsMiddleware } from '@idp/common';
 import { APP_GUARD } from '@nestjs/core';
 @Module({
   imports: [
@@ -21,6 +21,7 @@ import { APP_GUARD } from '@nestjs/core';
       useFactory: (config: ConfigService) => ({ secret: config.get<string>('JWT_SECRET') }),
       inject: [ConfigService],
     }),
+    MetricsModule,
   ],
   controllers: [CostController, HealthController],
   providers: [
@@ -30,4 +31,8 @@ import { APP_GUARD } from '@nestjs/core';
     { provide: APP_GUARD, useClass: ThrottlerGuard },
   ],
 })
-export class CostModule {}
+export class CostModule implements NestModule {   // ← added implements
+  configure(consumer: MiddlewareConsumer): void {        // ← added
+    consumer.apply(MetricsMiddleware).forRoutes('*');
+  }
+}

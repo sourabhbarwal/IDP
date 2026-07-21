@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module ,MiddlewareConsumer, NestModule} from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { JwtModule } from '@nestjs/jwt';
@@ -25,7 +25,7 @@ import { ListDeploymentsUseCase } from './application/use-cases/list-deployments
 import { DeploymentsController } from './infrastructure/web/deployments.controller';
 import { HealthController } from './infrastructure/web/health.controller';
 import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
-import { THROTTLE_CONFIG_GLOBAL } from '@idp/common';
+import { THROTTLE_CONFIG_GLOBAL, MetricsModule, MetricsMiddleware} from '@idp/common';
 import { APP_GUARD } from '@nestjs/core';
 
 @Module({
@@ -39,6 +39,7 @@ import { APP_GUARD } from '@nestjs/core';
       useFactory: (config: ConfigService) => ({ secret: config.get<string>('JWT_SECRET') }),
       inject: [ConfigService],
     }),
+    MetricsModule,
   ],
   controllers: [DeploymentsController, HealthController],
   providers: [
@@ -57,4 +58,8 @@ import { APP_GUARD } from '@nestjs/core';
     ListDeploymentsUseCase,
   ],
 })
-export class DeploymentModule {}
+export class DeploymentModule implements NestModule {   // ← added implements
+  configure(consumer: MiddlewareConsumer): void {        // ← added
+    consumer.apply(MetricsMiddleware).forRoutes('*');
+  }
+}

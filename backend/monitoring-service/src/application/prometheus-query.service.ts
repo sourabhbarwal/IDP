@@ -124,20 +124,35 @@ export class PrometheusQueryService {
   }
 
   async getAllServicesMetrics(): Promise<ServiceMetrics[]> {
-    const services = [
-      { name: 'auth-service', namespace: 'dev-auth-service' },
-      { name: 'service-catalog-service', namespace: 'dev-service-catalog-service' },
-      { name: 'repository-service', namespace: 'dev-repository-service' },
-      { name: 'template-service', namespace: 'dev-template-service' },
-      { name: 'deployment-service', namespace: 'dev-deployment-service' },
-    ];
+    const jobs = await this.discoverServiceJobs();
 
     const results = await Promise.allSettled(
-      services.map((s) => this.getServiceMetrics(s.name, s.namespace)),
+      jobs.map((job) => this.getServiceMetrics(job, `dev-${job}`)),
     );
 
     return results
       .filter((r): r is PromiseFulfilledResult<ServiceMetrics> => r.status === 'fulfilled')
       .map((r) => r.value);
+  }
+
+  /**
+   * Discovers all scraped service jobs dynamically from Prometheus's own
+   * target list (via the `up` metric), excluding Prometheus itself.
+   * This means any new service added to prometheus.yml automatically
+   * appears here with zero code changes — no more hardcoded, staling lists.
+   */
+  private async discoverServiceJobs(): Promise<string[]> {
+    try {
+      const data = await this.queryInstant('up');
+      if (data.resultType !== 'vector') return [];
+
+      return (data.result as MetricResult[])
+        .map((r) => r.metric.job)
+        .filter((job): job is string => Boolean(job) && job !== 'prometheus');
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      this.logger.error(`Failed to discover service jobs from Prometheus: ${message}`);
+      return [];
+    }
   }
 }
