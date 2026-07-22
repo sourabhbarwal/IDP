@@ -111,21 +111,48 @@ describe('PrometheusQueryService', () => {
     expect(result.namespace).toBe('dev-auth-service');
   });
 
-  it('getAllServicesMetrics returns the fulfilled metrics for all services', async () => {
-    jest.spyOn(service, 'getServiceMetrics').mockResolvedValue({
-      service: 'auth-service',
-      namespace: 'dev-auth-service',
+  it('getAllServicesMetrics returns the fulfilled metrics for all discovered services', async () => {
+    jest.spyOn(service, 'queryInstant').mockResolvedValue({
+      resultType: 'vector',
+      result: [
+        { metric: { job: 'auth-service' }, value: [1, '1'] },
+        { metric: { job: 'service-catalog-service' }, value: [1, '1'] },
+        { metric: { job: 'repository-service' }, value: [1, '1'] },
+        { metric: { job: 'template-service' }, value: [1, '1'] },
+        { metric: { job: 'deployment-service' }, value: [1, '1'] },
+        { metric: { job: 'prometheus' }, value: [1, '1'] },
+      ],
+    } as PrometheusQueryResponse);
+
+    jest.spyOn(service, 'getServiceMetrics').mockImplementation(async (serviceName, namespace) => ({
+      service: serviceName,
+      namespace,
       requestRate: 1,
       errorRate: 0,
       p95LatencyMs: 2,
       memoryUsageBytes: 3,
       cpuUsageCores: 4,
       readyReplicas: 5,
-    });
+    }));
 
     const results = await service.getAllServicesMetrics();
 
+    // "prometheus" itself is excluded by discoverServiceJobs()
     expect(results).toHaveLength(5);
-    expect(results[0].service).toBe('auth-service');
+    expect(results.map((r) => r.service).sort()).toEqual([
+      'auth-service',
+      'deployment-service',
+      'repository-service',
+      'service-catalog-service',
+      'template-service',
+    ]);
+  });
+
+  it('discoverServiceJobs returns an empty list when Prometheus is unreachable', async () => {
+    jest.spyOn(service, 'queryInstant').mockRejectedValue(new Error('prometheus down'));
+
+    const results = await service.getAllServicesMetrics();
+
+    expect(results).toHaveLength(0);
   });
 });
