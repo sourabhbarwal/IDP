@@ -19,7 +19,11 @@ export class LogsController {
     @Query('environment') environment?: string,
     @Query('limit') limit?: string,
   ) {
-    return this.lokiService.getServiceLogs(serviceName, environment ?? 'dev', Number(limit ?? 100));
+    return this.lokiService.getServiceLogs(
+      serviceName,
+      environment ?? 'dev',
+      Number(limit ?? 100),
+    );
   }
 
   @Get('search')
@@ -34,33 +38,36 @@ export class LogsController {
     @Query('end') end?: string,
     @Query('limit') limit?: string,
   ) {
-    const endMs = end ? Number(end) : Date.now();
-    const startMs = start ? Number(start) : endMs - 3600_000;
+    const endMs   = end   ? Number(end)   : Date.now();
+    const startMs = start ? Number(start) : endMs - 3_600_000;
     return this.lokiService.searchLogs(query, startMs, endMs, Number(limit ?? 100));
   }
 
   @Get('query')
-  @ApiOperation({ summary: 'Execute a raw LogQL query' })
-  @ApiQuery({ name: 'service', required: false })
-  @ApiQuery({ name: 'namespace', required: false })
-  @ApiQuery({ name: 'level', required: false })
-  @ApiQuery({ name: 'search', required: false })
-  @ApiQuery({ name: 'start', required: false })
-  @ApiQuery({ name: 'end', required: false })
-  @ApiQuery({ name: 'limit', required: false, type: Number })
+  @ApiOperation({ summary: 'Query logs with filters' })
+  @ApiQuery({ name: 'service',  required: false })
+  @ApiQuery({ name: 'level',    required: false })
+  @ApiQuery({ name: 'search',   required: false })
+  @ApiQuery({ name: 'start',    required: false })
+  @ApiQuery({ name: 'end',      required: false })
+  @ApiQuery({ name: 'limit',    required: false, type: Number })
   async query(
     @Query('service') service?: string,
-    @Query('namespace') namespace?: string,
-    @Query('level') level?: string,
-    @Query('search') search?: string,
-    @Query('start') start?: string,
-    @Query('end') end?: string,
-    @Query('limit') limit?: string,
+    @Query('level')   level?: string,
+    @Query('search')  search?: string,
+    @Query('start')   start?: string,
+    @Query('end')     end?: string,
+    @Query('limit')   limit?: string,
   ) {
-    const endMs = end ? Number(end) : Date.now();
-    const startMs = start ? Number(start) : endMs - 3600_000;
+    const endMs   = end   ? Number(end)   : Date.now();
+    const startMs = start ? Number(start) : endMs - 3_600_000;
     return this.lokiService.queryLogs({
-      service, namespace, level, search, startMs, endMs, limit: Number(limit ?? 100),
+      service,
+      level,
+      search,
+      startMs,
+      endMs,
+      limit: Number(limit ?? 100),
     });
   }
 }

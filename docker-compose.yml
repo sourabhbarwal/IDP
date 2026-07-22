@@ -109,6 +109,29 @@ services:
       timeout: 5s
       retries: 3
   
+  promtail:
+    image: grafana/promtail:3.1.1
+    container_name: idp-promtail
+    restart: unless-stopped
+    volumes:
+      # Config file
+      - ./monitoring/loki/promtail-config.yaml:/etc/promtail/promtail-config.yaml:ro
+      # Docker socket — needed for docker_sd_configs service discovery
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      # Container log files — Promtail reads these directly
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+    command: -config.file=/etc/promtail/promtail-config.yaml
+    depends_on:
+      loki:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:9080/ready || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+  
+  
+  
   alertmanager:
     image: prom/alertmanager:v0.27.0
     container_name: idp-alertmanager

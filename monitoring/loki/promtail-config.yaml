@@ -1,35 +1,64 @@
 server:
   http_listen_port: 9080
   grpc_listen_port: 0
+  log_level: info
 
 positions:
   filename: /tmp/positions.yaml
 
 clients:
   - url: http://loki:3100/loki/api/v1/push
+    tenant_id: fake
 
 scrape_configs:
-  - job_name: kubernetes-pods
-    kubernetes_sd_configs:
-      - role: pod
+  - job_name: docker-containers
+    docker_sd_configs:
+      - host: unix:///var/run/docker.sock
+        refresh_interval: 5s
+        filters:
+          # Only scrape running containers
+          - name: status
+            values: [running]
+
+    relabel_configs:
+      # Use container name as the "container" label
+      - source_labels: [__meta_docker_container_name]
+        regex: '/(.+)'
+        target_label: container
+
+      # Use the compose service name as "service" label
+      - source_labels: [__meta_docker_container_label_com_docker_compose_service]
+        target_label: service
+
+      # Use the compose project name as "compose_project" label
+      - source_labels: [__meta_docker_container_label_com_docker_compose_project]
+        target_label: compose_project
+
+      # Image name for reference
+      - source_labels: [__meta_docker_container_image]
+        target_label: image
+
+      # Only scrape containers that belong to our IDP compose project
+      # (prevents scraping unrelated containers on the machine)
+      - source_labels: [__meta_docker_container_label_com_docker_compose_project]
+        regex: idp
+        action: keep
+
     pipeline_stages:
+      # Attempt to parse JSON logs (all our NestJS services log JSON)
       - json:
           expressions:
             level: level
             message: message
             service: service
+            context: context
+            pid: pid
+
+      # Promote parsed fields as labels
       - labels:
           level:
           service:
-    relabel_configs:
-      - source_labels: [__meta_kubernetes_pod_annotation_kubernetes_io_psp]
-        action: drop
-        regex: privileged
-      - source_labels: [__meta_kubernetes_namespace]
-        target_label: namespace
-      - source_labels: [__meta_kubernetes_pod_name]
-        target_label: pod
-      - source_labels: [__meta_kubernetes_pod_container_name]
-        target_label: container
-      - source_labels: [__meta_kubernetes_pod_label_app]
-        target_label: app
+
+      # Use the log message as the final log line
+      - output:
+          source: message
