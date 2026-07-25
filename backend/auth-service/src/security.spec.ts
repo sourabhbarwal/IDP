@@ -7,7 +7,7 @@ interface ThrottlerEntry {
 }
 
 function getThrottler(config: typeof THROTTLE_CONFIG_GLOBAL, name: string): ThrottlerEntry | undefined {
-  const throttlers = (config.throttlers ?? []) as ThrottlerEntry[];
+  const throttlers = config as unknown as ThrottlerEntry[];
   return throttlers.find((t) => t.name === name);
 }
 
@@ -22,9 +22,9 @@ describe('applySecurity', () => {
 });
 
 describe('THROTTLE_CONFIG_GLOBAL', () => {
-  it('has a throttlers array', () => {
-    expect(Array.isArray(THROTTLE_CONFIG_GLOBAL.throttlers)).toBe(true);
-    expect((THROTTLE_CONFIG_GLOBAL.throttlers ?? []).length).toBeGreaterThan(0);
+  it('is a non-empty array', () => {
+    expect(Array.isArray(THROTTLE_CONFIG_GLOBAL)).toBe(true);
+    expect(THROTTLE_CONFIG_GLOBAL.length).toBeGreaterThan(0);
   });
 
   it('global throttler allows 100 requests per 15 minutes', () => {
@@ -37,7 +37,7 @@ describe('THROTTLE_CONFIG_GLOBAL', () => {
 
 describe('THROTTLE_CONFIG_AUTH', () => {
   it('has both global and auth throttlers', () => {
-    const throttlers = (THROTTLE_CONFIG_AUTH.throttlers ?? []) as ThrottlerEntry[];
+    const throttlers = THROTTLE_CONFIG_AUTH as unknown as ThrottlerEntry[];
     const names = throttlers.map((t) => t.name);
     expect(names).toContain('global');
     expect(names).toContain('auth');
@@ -58,6 +58,6 @@ describe('THROTTLE_CONFIG_AUTH', () => {
   it('auth throttler is stricter than global', () => {
     const auth = getThrottler(THROTTLE_CONFIG_AUTH, 'auth');
     const global = getThrottler(THROTTLE_CONFIG_AUTH, 'global');
-    expect((auth?.limit ?? 999)).toBeLessThan((global?.limit ?? 0));
+    expect(auth?.limit ?? 999).toBeLessThan(global?.limit ?? 0);
   });
 });

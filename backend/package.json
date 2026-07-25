@@ -27,7 +27,11 @@
     "audit:prod": "npm audit --audit-level=critical --omit=dev",
     "audit:full": "npm audit --audit-level=high --omit=dev"
   },
-  "devDependencies": { "typescript": "^5.5.4" },
+  "devDependencies": { 
+    "@nestjs/cli": "^11.0.0",
+    "@nestjs/schematics": "^11.0.0",
+    "typescript": "^5.5.4" 
+  },
   "overrides": {
     "@nestjs/throttler": "6.5.0",
     "helmet": "^8.3.0",

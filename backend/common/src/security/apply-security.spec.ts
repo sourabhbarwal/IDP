@@ -29,13 +29,13 @@ describe('applySecurity', () => {
 });
 
 describe('THROTTLE_CONFIG_GLOBAL', () => {
-  it('has throttlers array with at least one entry', () => {
-    expect(Array.isArray(THROTTLE_CONFIG_GLOBAL.throttlers)).toBe(true);
-    expect(THROTTLE_CONFIG_GLOBAL.throttlers.length).toBeGreaterThan(0);
+  it('has at least one entry', () => {
+    expect(Array.isArray(THROTTLE_CONFIG_GLOBAL)).toBe(true);
+    expect(THROTTLE_CONFIG_GLOBAL.length).toBeGreaterThan(0);
   });
 
   it('global throttler allows 100 requests per 15 minutes', () => {
-    const global = THROTTLE_CONFIG_GLOBAL.throttlers.find((t) => t.name === 'global');
+    const global = THROTTLE_CONFIG_GLOBAL.find((t) => t.name === 'global');
     expect(global).toBeDefined();
     expect(global!.limit).toBe(100);
     expect(global!.ttl).toBe(900_000);
@@ -44,15 +44,15 @@ describe('THROTTLE_CONFIG_GLOBAL', () => {
 
 describe('THROTTLE_CONFIG_AUTH', () => {
   it('auth throttler has stricter limit than global', () => {
-    const auth = THROTTLE_CONFIG_AUTH.throttlers.find((t) => t.name === 'auth');
-    const global = THROTTLE_CONFIG_AUTH.throttlers.find((t) => t.name === 'global');
+    const auth = THROTTLE_CONFIG_AUTH.find((t) => t.name === 'auth');
+    const global = THROTTLE_CONFIG_AUTH.find((t) => t.name === 'global');
     expect(auth).toBeDefined();
     expect(global).toBeDefined();
     expect(auth!.limit).toBeLessThan(global!.limit);
   });
 
   it('auth limit is 10 requests per 15 minutes', () => {
-    const auth = THROTTLE_CONFIG_AUTH.throttlers.find((t) => t.name === 'auth');
+    const auth = THROTTLE_CONFIG_AUTH.find((t) => t.name === 'auth');
     expect(auth!.limit).toBe(10);
   });
 });

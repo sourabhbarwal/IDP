@@ -8,7 +8,12 @@ export interface AuthenticatedUser { userId: string; email: string; roles: strin
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
   constructor(config: ConfigService) {
-    super({ jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(), ignoreExpiration: false, secretOrKey: config.get<string>('JWT_SECRET'), issuer: config.get<string>('JWT_ISSUER', 'idp-platform') });
+    const jwtSecret = config.get<string>('JWT_SECRET');
+    if (!jwtSecret) {
+      throw new Error('JWT_SECRET is not configured');
+    }
+
+    super({ jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(), ignoreExpiration: false, secretOrKey: jwtSecret, issuer: config.get<string>('JWT_ISSUER', 'idp-platform') });
   }
   validate(payload: { sub: string; email: string; roles: string[]; permissions: string[] }): AuthenticatedUser {
     return { userId: payload.sub, email: payload.email, roles: payload.roles ?? [], permissions: payload.permissions ?? [] };

@@ -1,118 +1,112 @@
-import { Body, Controller, HttpCode, HttpStatus, Post, Req, UseGuards } from '@nestjs/common';
-import { ApiOperation, ApiResponse, ApiTags, ApiBearerAuth } from '@nestjs/swagger';
+import {
+  Body, Controller, Get, HttpCode, HttpStatus,
+  Post, Req, UseGuards,
+} from '@nestjs/common';
+import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { Throttle, SkipThrottle } from '@nestjs/throttler';
 import { Request } from 'express';
 import { ApiException } from '@idp/common';
-import {
-  AccountNotActiveError,
-  EmailAlreadyRegisteredError,
-  InvalidCredentialsError,
-  InvalidRefreshTokenError,
-} from '../../domain/exceptions/domain-exceptions';
-import { RegisterUserUseCase } from '../../application/use-cases/register-user.use-case';
+import { JwtAuthGuard } from '../security/jwt-auth.guard';
+import { CurrentUser } from '../security/decorators/current-user.decorator';
+import { AuthenticatedUser } from '../security/jwt.strategy';
 import { LoginUserUseCase } from '../../application/use-cases/login-user.use-case';
+import { RegisterUserUseCase } from '../../application/use-cases/register-user.use-case';
 import { RefreshTokenUseCase } from '../../application/use-cases/refresh-token.use-case';
 import { LogoutUseCase } from '../../application/use-cases/logout.use-case';
-import { RegisterRequestDto } from './dto/register-request.dto';
+import { GetCurrentUserUseCase } from '../../application/use-cases/get-current-user.use-case';
 import { LoginRequestDto } from './dto/login-request.dto';
-import { LogoutRequestDto, RefreshRequestDto } from './dto/refresh-request.dto';
-import { AuthResponseDto, UserResponseDto } from './dto/auth-response.dto';
-import { JwtAuthGuard } from '../../infrastructure/security/jwt-auth.guard';
-import { CurrentUser } from '../../infrastructure/security/decorators/current-user.decorator';
-import { AuthenticatedUser } from '../../infrastructure/security/jwt.strategy';
-import { Throttle, SkipThrottle } from '@nestjs/throttler';
+import { RegisterRequestDto } from './dto/register-request.dto';
+import { RefreshRequestDto, LogoutRequestDto } from './dto/refresh-request.dto';
 
 function clientIp(req: Request): string | null {
-  return (req.headers['x-forwarded-for'] as string)?.split(',')[0]?.trim() ?? req.ip ?? null;
+  return (
+    (req.headers['x-forwarded-for'] as string)?.split(',')[0]?.trim() ??
+    req.ip ??
+    null
+  );
 }
 
 @ApiTags('auth')
 @Controller('api/v1/auth')
 export class AuthController {
   constructor(
-    private readonly registerUserUseCase: RegisterUserUseCase,
-    private readonly loginUserUseCase: LoginUserUseCase,
+    private readonly loginUseCase: LoginUserUseCase,
+    private readonly registerUseCase: RegisterUserUseCase,
     private readonly refreshTokenUseCase: RefreshTokenUseCase,
     private readonly logoutUseCase: LogoutUseCase,
+    private readonly getCurrentUserUseCase: GetCurrentUserUseCase,
   ) {}
 
-  @Post('register')
+  @Post('login')
+  @HttpCode(HttpStatus.OK)
   @Throttle({ auth: { limit: 10, ttl: 900_000 } })
-  @HttpCode(HttpStatus.CREATED)
-  @ApiOperation({ summary: 'Register a new user (assigned the DEVELOPER role by default)' })
-  @ApiResponse({ status: 201, type: UserResponseDto })
-  @ApiResponse({ status: 409, description: 'Email already registered' })
-  async register(@Body() body: RegisterRequestDto, @Req() req: Request): Promise<UserResponseDto> {
+  @ApiOperation({ summary: 'Login with email and password' })
+  async login(
+    @Body() body: LoginRequestDto,
+    @Req() req: Request,
+  ) {
     try {
-      const user = await this.registerUserUseCase.execute({
+      return await this.loginUseCase.execute({
         email: body.email,
         password: body.password,
-        fullName: body.fullName,
         ipAddress: clientIp(req),
       });
-      return UserResponseDto.fromDomain(user);
     } catch (err) {
-      if (err instanceof EmailAlreadyRegisteredError) {
-        throw ApiException.conflict(err.message);
-      }
-      throw err;
+      throw ApiException.unauthorized('Invalid credentials');
     }
   }
 
-  @Post('login')
+  @Post('register')
+  @HttpCode(HttpStatus.CREATED)
   @Throttle({ auth: { limit: 10, ttl: 900_000 } })
-  @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Authenticate and receive an access + refresh token pair' })
-  @ApiResponse({ status: 200, type: AuthResponseDto })
-  @ApiResponse({ status: 401, description: 'Invalid credentials' })
-  async login(@Body() body: LoginRequestDto, @Req() req: Request): Promise<AuthResponseDto> {
-    try {
-      const tokens = await this.loginUserUseCase.execute({
-        email: body.email,
-        password: body.password,
-        ipAddress: clientIp(req),
-      });
-      return AuthResponseDto.fromTokens(tokens);
-    } catch (err) {
-      if (err instanceof InvalidCredentialsError || err instanceof AccountNotActiveError) {
-        throw ApiException.unauthorized(err.message);
-      }
-      throw err;
-    }
+  @ApiOperation({ summary: 'Register a new user account' })
+  async register(
+    @Body() body: RegisterRequestDto,
+    @Req() req: Request,
+  ) {
+    return this.registerUseCase.execute({
+      email: body.email,
+      password: body.password,
+      fullName: body.fullName,
+      ipAddress: clientIp(req),
+    });
   }
 
   @Post('refresh')
-  @Throttle({ auth: { limit: 30, ttl: 900_000 } })
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Exchange a refresh token for a new access + refresh token pair (rotation)' })
-  @ApiResponse({ status: 200, type: AuthResponseDto })
-  @ApiResponse({ status: 401, description: 'Invalid, expired or reused refresh token' })
-  async refresh(@Body() body: RefreshRequestDto, @Req() req: Request): Promise<AuthResponseDto> {
+  @Throttle({ global: { limit: 30, ttl: 900_000 } })
+  @ApiOperation({ summary: 'Refresh access token using refresh token' })
+  async refresh(@Body() body: RefreshRequestDto, @Req() req: Request) {
     try {
-      const tokens = await this.refreshTokenUseCase.execute({
+      return await this.refreshTokenUseCase.execute({
         refreshToken: body.refreshToken,
         ipAddress: clientIp(req),
       });
-      return AuthResponseDto.fromTokens(tokens);
-    } catch (err) {
-      if (err instanceof InvalidRefreshTokenError) {
-        throw ApiException.unauthorized(err.message);
-      }
-      throw err;
+    } catch {
+      throw ApiException.unauthorized('Invalid or expired refresh token');
     }
   }
 
-  @Post('logout')
+  @Get('me')
   @SkipThrottle()
-  @HttpCode(HttpStatus.NO_CONTENT)
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'Revoke the given refresh token (ends the current session)' })
-  @ApiResponse({ status: 204, description: 'Logged out' })
+  @ApiOperation({ summary: 'Get current authenticated user' })
+  async me(@CurrentUser() user: AuthenticatedUser) {
+    return this.getCurrentUserUseCase.execute(user.userId);
+  }
+
+  @Post('logout')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @SkipThrottle()
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Logout and invalidate refresh token' })
   async logout(
     @Body() body: LogoutRequestDto,
-    @Req() req: Request,
     @CurrentUser() user: AuthenticatedUser,
-  ): Promise<void> {
+    @Req() req: Request,
+  ) {
     await this.logoutUseCase.execute({
       refreshToken: body.refreshToken,
       userId: user.userId,
