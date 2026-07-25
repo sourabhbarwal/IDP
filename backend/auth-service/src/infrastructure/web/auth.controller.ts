@@ -17,7 +17,8 @@ import { GetCurrentUserUseCase } from '../../application/use-cases/get-current-u
 import { LoginRequestDto } from './dto/login-request.dto';
 import { RegisterRequestDto } from './dto/register-request.dto';
 import { RefreshRequestDto, LogoutRequestDto } from './dto/refresh-request.dto';
-
+import { UserResponseDto, AuthResponseDto } from './dto/auth-response.dto';
+import { EmailAlreadyRegisteredError } from '../../domain/exceptions/domain-exceptions';
 function clientIp(req: Request): string | null {
   return (
     (req.headers['x-forwarded-for'] as string)?.split(',')[0]?.trim() ??
@@ -44,13 +45,14 @@ export class AuthController {
   async login(
     @Body() body: LoginRequestDto,
     @Req() req: Request,
-  ) {
+  ): Promise<AuthResponseDto> {
     try {
-      return await this.loginUseCase.execute({
+      const tokens = await this.loginUseCase.execute({
         email: body.email,
         password: body.password,
         ipAddress: clientIp(req),
       });
+      return AuthResponseDto.fromTokens(tokens);
     } catch (err) {
       throw ApiException.unauthorized('Invalid credentials');
     }
@@ -63,13 +65,21 @@ export class AuthController {
   async register(
     @Body() body: RegisterRequestDto,
     @Req() req: Request,
-  ) {
-    return this.registerUseCase.execute({
-      email: body.email,
-      password: body.password,
-      fullName: body.fullName,
-      ipAddress: clientIp(req),
-    });
+  ): Promise<UserResponseDto> {
+    try {
+      const user = await this.registerUseCase.execute({
+        email: body.email,
+        password: body.password,
+        fullName: body.fullName,
+        ipAddress: clientIp(req),
+      });
+      return UserResponseDto.fromDomain(user);
+    } catch (err) {
+      if (err instanceof EmailAlreadyRegisteredError) {
+        throw ApiException.conflict(err.message);
+      }
+      throw err;
+    }
   }
 
   @Post('refresh')
