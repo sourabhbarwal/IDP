@@ -79,13 +79,44 @@ import { THROTTLE_CONFIG_AUTH} from '@idp/common';
     // Auth
     PassportModule.register({ defaultStrategy: 'jwt' }),
     JwtModule.registerAsync({
-      useFactory: (config: ConfigService) => ({
-        secret: config.get<string>('JWT_SECRET'),
-        signOptions: {
-          expiresIn: config.get<number>('JWT_ACCESS_TOKEN_TTL_SECONDS', 900),
-          issuer: config.get<string>('JWT_ISSUER', 'idp-platform'),
-        },
-      }),
+      useFactory: (config: ConfigService) => {
+        const algorithm = config.get<string>('jwt.algorithm', 'HS256');
+
+        if (algorithm === 'RS256') {
+          const privateKey = config.get<string>('jwt.privateKey');
+          const publicKey  = config.get<string>('jwt.publicKey');
+
+          if (!privateKey || !publicKey) {
+            throw new Error(
+              'JWT_ALGORITHM=RS256 requires JWT_PRIVATE_KEY_PATH and JWT_PUBLIC_KEY_PATH to be set',
+            );
+          }
+
+          return {
+            privateKey,
+            publicKey,  
+            signOptions: {
+              algorithm: 'RS256',
+              expiresIn: config.get<number>('jwt.accessTokenTtl', 900),
+              issuer: config.get<string>('jwt.issuer', 'idp-platform'),
+            },
+            verifyOptions: {
+              algorithms: ['RS256'],
+              issuer: config.get<string>('jwt.issuer', 'idp-platform'),
+            },
+          };
+        }
+
+        // Default: HS256 for local development
+        return {
+          secret: config.get<string>('jwt.secret', 'change-me'),
+          signOptions: {
+            algorithm: 'HS256',
+            expiresIn: config.get<number>('jwt.accessTokenTtl', 900),
+            issuer: config.get<string>('jwt.issuer', 'idp-platform'),
+          },
+        };
+      },
       inject: [ConfigService],
     }),
     MetricsModule,

@@ -2,6 +2,9 @@ import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy } from 'passport-jwt';
+import { Algorithm } from 'jsonwebtoken';
+import * as fs from 'fs';
+import * as path from 'path';
 import { AccessTokenClaims } from '../../application/ports/token-provider.port';
 
 export interface AuthenticatedUser {
@@ -11,20 +14,34 @@ export interface AuthenticatedUser {
   permissions: string[];
 }
 
+function loadKey(envVarPath: string | undefined): string | undefined {
+  if (!envVarPath) return undefined;
+  const resolved = path.resolve(envVarPath);
+  return fs.existsSync(resolved) ? fs.readFileSync(resolved, 'utf8') : undefined;
+}
+
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
   constructor(config: ConfigService) {
-    const jwtSecret = config.get<string>('JWT_SECRET');
-    if (!jwtSecret) {
-      throw new Error('JWT_SECRET is not configured');
+    const algorithm = config.get<string>('jwt.algorithm', 'HS256');
+    const isRS256 = algorithm === 'RS256';
+
+    const secretOrKey = isRS256
+      ? config.get<string>('jwt.publicKey')
+      : config.get<string>('jwt.secret') ?? config.get<string>('JWT_SECRET');
+
+    if (!secretOrKey) {
+      throw new Error(isRS256 ? 'JWT_ALGORITHM=RS256 but jwt.publicKey is not configured' : 'JWT_SECRET is not configured');
     }
+
+    const algorithms: Algorithm[] = isRS256 ? ['RS256'] : ['HS256'];
 
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
       ignoreExpiration: false,
-      // Ensure a string is provided to satisfy the passport-jwt typings
-      secretOrKey: jwtSecret ?? '',
-      issuer: config.get<string>('JWT_ISSUER', 'idp-platform'),
+      secretOrKey,
+      algorithms,
+      issuer: config.get<string>('jwt.issuer', 'idp-platform'),
     });
   }
 

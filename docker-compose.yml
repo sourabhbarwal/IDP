@@ -1,77 +1,174 @@
 version: "3.9"
 
-# ─────────────────────────────────────────────────────────────────────────────
-# IDP Platform — Local Development Stack (No AWS, all free)
-#
-# Usage:
-#   docker compose up -d                          # core 4 services
-#   docker compose --profile stubs up -d          # add all 7 stub services
-#   docker compose --profile full up -d           # add frontend container
-#   docker compose logs -f auth-service           # tail service logs
-#   docker compose down -v                        # stop + delete volumes
-# ─────────────────────────────────────────────────────────────────────────────
+# ── Networks ──────────────────────────────────────────────────────────────────
+networks:
+  idp-network:
+    driver: bridge
+
+# ── Volumes ───────────────────────────────────────────────────────────────────
+volumes:
+  postgres_data:
+  redis_data:
+  prometheus_data:
+  grafana_data:
+  loki_data:
+  alertmanager_data:
+  pgbouncer_data:
 
 services:
+
   # ── Infrastructure ───────────────────────────────────────────────────────────
+
   postgres:
     image: postgres:16-alpine
     container_name: idp-postgres
     restart: unless-stopped
+    networks: [idp-network]
     environment:
       POSTGRES_DB: idp
       POSTGRES_USER: idp
       POSTGRES_PASSWORD: ***REMOVED***
-    ports:
-      - "5432:5432"
+      # Tune for PgBouncer transaction pooling
+      POSTGRES_INITDB_ARGS: "--encoding=UTF8"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    command: >
+      postgres
+        -c max_connections=100
+        -c shared_buffers=256MB
+        -c effective_cache_size=768MB
+        -c maintenance_work_mem=64MB
+        -c checkpoint_completion_target=0.9
+        -c wal_buffers=16MB
+        -c default_statistics_target=100
+        -c log_min_duration_statement=1000
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 512M
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U idp -d idp"]
       interval: 10s
       timeout: 5s
       retries: 5
+      start_period: 10s
+    # Only expose in dev — remove in production
+    ports:
+      - "5432:5432"
+
+  pgbouncer:
+      image: pgbouncer/pgbouncer:latest
+      container_name: idp-pgbouncer
+      restart: unless-stopped
+      networks: [idp-network]
+      depends_on:
+        postgres:
+          condition: service_healthy
+      environment:
+        DATABASES_HOST: postgres
+        DATABASES_PORT: "5432"
+        DATABASES_USER: idp
+        DATABASES_PASSWORD: ***REMOVED***
+        DATABASES_DBNAME: idp
+        PGBOUNCER_POOL_MODE: transaction
+        PGBOUNCER_MAX_CLIENT_CONN: "200"
+        PGBOUNCER_DEFAULT_POOL_SIZE: "10"
+        PGBOUNCER_MIN_POOL_SIZE: "2"
+        PGBOUNCER_AUTH_TYPE: any
+        PGBOUNCER_ADMIN_USERS: idp
+      deploy:
+        resources:
+          limits:
+            cpus: '0.25'
+            memory: 64M
+      healthcheck:
+        test: ["CMD-SHELL", "nc -z localhost 6432 || exit 1"]
+        interval: 10s
+        timeout: 5s
+        retries: 3
+        start_period: 5s
+      ports:
+        - "6432:6432"
 
   redis:
     image: redis:7-alpine
     container_name: idp-redis
     restart: unless-stopped
-    command: redis-server --appendonly yes
-    ports:
-      - "6379:6379"
+    networks: [idp-network]
     volumes:
       - redis_data:/data
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
+    deploy:
+      resources:
+        limits:
+          cpus: '0.25'
+          memory: 256M
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 10s
+      timeout: 3s
+      retries: 3
+
+  nginx:
+    image: nginx:1.27-alpine
+    container_name: idp-nginx
+    restart: unless-stopped
+    networks: [idp-network]
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      auth-service:
+        condition: service_healthy
+      service-catalog-service:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 128M
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1/health"]
+      interval: 15s
       timeout: 5s
-      retries: 5
+      retries: 3
+
+  # ── Monitoring Stack ──────────────────────────────────────────────────────────
 
   prometheus:
     image: prom/prometheus:v2.54.1
     container_name: idp-prometheus
     restart: unless-stopped
+    networks: [idp-network]
     ports:
       - "9090:9090"
     volumes:
-      - ./monitoring/prometheus/prometheus-compose.yml:/etc/prometheus/prometheus.yml:ro
+      - ./monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
       - ./monitoring/prometheus/rules:/etc/prometheus/rules:ro
       - prometheus_data:/prometheus
-
     command:
       - --config.file=/etc/prometheus/prometheus.yml
       - --storage.tsdb.path=/prometheus
       - --storage.tsdb.retention.time=7d
       - --web.enable-lifecycle
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
     healthcheck:
-      test: ["CMD-SHELL", "wget -qO- http://localhost:9090/-/ready"]
+      test: ["CMD", "wget", "-qO-", "http://localhost:9090/-/ready"]
       interval: 15s
       timeout: 5s
-      retries: 5
+      retries: 3
 
   grafana:
     image: grafana/grafana:11.2.0
     container_name: idp-grafana
     restart: unless-stopped
+    networks: [idp-network]
     ports:
       - "3000:3000"
     environment:
@@ -84,8 +181,15 @@ services:
       - ./monitoring/grafana/dashboards:/var/lib/grafana/dashboards:ro
       - grafana_data:/var/lib/grafana
     depends_on:
-      - prometheus
-      - loki
+      prometheus:
+        condition: service_healthy
+      loki:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 256M
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://localhost:3000/api/health"]
       interval: 15s
@@ -96,46 +200,53 @@ services:
     image: grafana/loki:3.1.1
     container_name: idp-loki
     restart: unless-stopped
-    user: "0:0"
+    networks: [idp-network]
     ports:
       - "3100:3100"
     volumes:
       - ./monitoring/loki/loki-config.yaml:/etc/loki/loki-config.yaml:ro
       - loki_data:/tmp/loki
     command: -config.file=/etc/loki/loki-config.yaml
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 256M
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://localhost:3100/ready"]
       interval: 15s
       timeout: 5s
       retries: 3
-  
+
   promtail:
     image: grafana/promtail:3.1.1
     container_name: idp-promtail
     restart: unless-stopped
+    networks: [idp-network]
     volumes:
-      # Config file
       - ./monitoring/loki/promtail-config.yaml:/etc/promtail/promtail-config.yaml:ro
-      # Docker socket — needed for docker_sd_configs service discovery
       - /var/run/docker.sock:/var/run/docker.sock:ro
-      # Container log files — Promtail reads these directly
       - /var/lib/docker/containers:/var/lib/docker/containers:ro
     command: -config.file=/etc/promtail/promtail-config.yaml
     depends_on:
       loki:
         condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          cpus: '0.25'
+          memory: 128M
     healthcheck:
       test: ["CMD-SHELL", "wget -qO- http://localhost:9080/ready || exit 1"]
       interval: 15s
       timeout: 5s
       retries: 3
-  
-  
-  
+
   alertmanager:
     image: prom/alertmanager:v0.27.0
     container_name: idp-alertmanager
     restart: unless-stopped
+    networks: [idp-network]
     ports:
       - "9093:9093"
     volumes:
@@ -144,6 +255,11 @@ services:
     command:
       - --config.file=/etc/alertmanager/alertmanager.yml
       - --storage.path=/alertmanager
+    deploy:
+      resources:
+        limits:
+          cpus: '0.25'
+          memory: 128M
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://localhost:9093/-/ready"]
       interval: 15s
@@ -154,34 +270,44 @@ services:
     image: otel/opentelemetry-collector-contrib:0.110.0
     container_name: idp-otel-collector
     restart: unless-stopped
+    networks: [idp-network]
     ports:
       - "4317:4317"
       - "4318:4318"
     volumes:
       - ./monitoring/otel/otel-collector-config.yaml:/etc/otel/otel-collector-config.yaml:ro
     command: --config=/etc/otel/otel-collector-config.yaml
-  
-      
-  # ── Phase 1: Auth ─────────────────────────────────────────────────────────────
+    deploy:
+      resources:
+        limits:
+          cpus: '0.25'
+          memory: 128M
+
+  # ── Backend Services ──────────────────────────────────────────────────────────
+  # Note: DB_HOST points to pgbouncer (connection pooling)
+  # Individual ports kept for local dev debugging — remove in production
+
   auth-service:
     build:
       context: .
       dockerfile: backend/auth-service/Dockerfile
       args:
         BUILD_REVISION: local
-        BUILD_DATE: "2024-01-01T00:00:00Z"
     container_name: idp-auth-service
     restart: unless-stopped
+    networks: [idp-network]
     depends_on:
-      postgres:
+      pgbouncer:
+        condition: service_healthy
+      redis:
         condition: service_healthy
     ports:
       - "3001:3001"
     environment:
       NODE_ENV: development
       PORT: 3001
-      DB_HOST: postgres
-      DB_PORT: 5432
+      DB_HOST: pgbouncer
+      DB_PORT: 6432
       DB_USERNAME: idp
       DB_PASSWORD: ***REMOVED***
       DB_NAME: idp
@@ -189,94 +315,112 @@ services:
       REDIS_HOST: redis
       REDIS_PORT: 6379
       JWT_SECRET: ***REMOVED***
+      JWT_ISSUER: idp-platform
+      JWT_ALGORITHM: HS256
       JWT_ACCESS_TOKEN_TTL_SECONDS: 900
       JWT_REFRESH_TOKEN_TTL_SECONDS: 604800
-      JWT_ISSUER: idp-platform
-      ALLOWED_ORIGINS: http://localhost:5173
+      ALLOWED_ORIGINS: http://localhost:5173,http://localhost:80,http://localhost
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 256M
     healthcheck:
       test: ["CMD-SHELL", "wget -qO- http://localhost:3001/health || exit 1"]
       interval: 30s
       timeout: 5s
       retries: 3
+      start_period: 20s
 
-  # ── Phase 2: Service Catalog ──────────────────────────────────────────────────
   service-catalog-service:
     build:
       context: .
       dockerfile: backend/service-catalog-service/Dockerfile
       args:
         BUILD_REVISION: local
-        BUILD_DATE: "2024-01-01T00:00:00Z"
-    container_name: idp-service-catalog
+    container_name: idp-service-catalog-service
     restart: unless-stopped
+    networks: [idp-network]
     depends_on:
-      postgres:
+      pgbouncer:
         condition: service_healthy
     ports:
       - "3002:3002"
     environment:
       NODE_ENV: development
       PORT: 3002
-      DB_HOST: postgres
-      DB_PORT: 5432
+      DB_HOST: pgbouncer
+      DB_PORT: 6432
       DB_USERNAME: idp
       DB_PASSWORD: ***REMOVED***
       DB_NAME: idp
       DB_SCHEMA: catalog
       JWT_SECRET: ***REMOVED***
       JWT_ISSUER: idp-platform
-      ALLOWED_ORIGINS: http://localhost:5173
+      JWT_ALGORITHM: HS256
+      ALLOWED_ORIGINS: http://localhost:5173,http://localhost
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 256M
     healthcheck:
       test: ["CMD-SHELL", "wget -qO- http://localhost:3002/health || exit 1"]
       interval: 30s
       timeout: 5s
       retries: 3
+      start_period: 20s
 
-  # ── Phase 3: Repository ───────────────────────────────────────────────────────
   repository-service:
     build:
       context: .
       dockerfile: backend/repository-service/Dockerfile
       args:
         BUILD_REVISION: local
-        BUILD_DATE: "2024-01-01T00:00:00Z"
     container_name: idp-repository-service
     restart: unless-stopped
+    networks: [idp-network]
     depends_on:
-      postgres:
+      pgbouncer:
         condition: service_healthy
     ports:
       - "3003:3003"
     environment:
       NODE_ENV: development
       PORT: 3003
-      DB_HOST: postgres
-      DB_PORT: 5432
+      DB_HOST: pgbouncer
+      DB_PORT: 6432
       DB_USERNAME: idp
       DB_PASSWORD: ***REMOVED***
       DB_NAME: idp
       DB_SCHEMA: repository
       JWT_SECRET: ***REMOVED***
       JWT_ISSUER: idp-platform
-      ALLOWED_ORIGINS: http://localhost:5173
-      GITHUB_TOKEN: ${GITHUB_TOKEN:-your-github-pat-here}
-      GITHUB_OWNER: ${GITHUB_OWNER:-your-github-username}
+      JWT_ALGORITHM: HS256
+      GITHUB_OWNER: your-github-username
+      GITHUB_TOKEN: ${GITHUB_TOKEN:-}
+      ALLOWED_ORIGINS: http://localhost:5173,http://localhost
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 256M
     healthcheck:
       test: ["CMD-SHELL", "wget -qO- http://localhost:3003/health || exit 1"]
       interval: 30s
       timeout: 5s
       retries: 3
+      start_period: 20s
 
-  # ── Phase 4: Template Engine ──────────────────────────────────────────────────
   template-service:
     build:
       context: .
       dockerfile: backend/template-service/Dockerfile
       args:
         BUILD_REVISION: local
-        BUILD_DATE: "2024-01-01T00:00:00Z"
     container_name: idp-template-service
     restart: unless-stopped
+    networks: [idp-network]
     ports:
       - "3004:3004"
     environment:
@@ -284,44 +428,59 @@ services:
       PORT: 3004
       JWT_SECRET: ***REMOVED***
       JWT_ISSUER: idp-platform
-      ALLOWED_ORIGINS: http://localhost:5173
+      JWT_ALGORITHM: HS256
+      ALLOWED_ORIGINS: http://localhost:5173,http://localhost
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 256M
     healthcheck:
       test: ["CMD-SHELL", "wget -qO- http://localhost:3004/health || exit 1"]
       interval: 30s
       timeout: 5s
       retries: 3
+      start_period: 20s
 
-  # ── Phase 5 stubs (full implementation Phase 6–9) ─────────────────────────────
   deployment-service:
     build:
       context: .
       dockerfile: backend/deployment-service/Dockerfile
       args:
         BUILD_REVISION: local
-        BUILD_DATE: "2024-01-01T00:00:00Z"
     container_name: idp-deployment-service
     restart: unless-stopped
+    networks: [idp-network]
     depends_on:
-      postgres:
+      pgbouncer:
         condition: service_healthy
     ports:
       - "3005:3005"
     environment:
       NODE_ENV: development
       PORT: 3005
-      DB_HOST: postgres
-      DB_PORT: 5432
+      DB_HOST: pgbouncer
+      DB_PORT: 6432
       DB_USERNAME: idp
       DB_PASSWORD: ***REMOVED***
       DB_NAME: idp
+      DB_SCHEMA: deployment
       JWT_SECRET: ***REMOVED***
       JWT_ISSUER: idp-platform
-      ALLOWED_ORIGINS: http://localhost:5173
+      JWT_ALGORITHM: HS256
+      KUBECONFIG_PATH: ""
+      ALLOWED_ORIGINS: http://localhost:5173,http://localhost
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 256M
     healthcheck:
       test: ["CMD-SHELL", "wget -qO- http://localhost:3005/health || exit 1"]
       interval: 30s
       timeout: 5s
       retries: 3
+      start_period: 20s
 
   monitoring-service:
     build:
@@ -331,6 +490,10 @@ services:
         BUILD_REVISION: local
     container_name: idp-monitoring-service
     restart: unless-stopped
+    networks: [idp-network]
+    depends_on:
+      prometheus:
+        condition: service_healthy
     ports:
       - "3006:3006"
     environment:
@@ -338,11 +501,14 @@ services:
       PORT: 3006
       JWT_SECRET: ***REMOVED***
       JWT_ISSUER: idp-platform
+      JWT_ALGORITHM: HS256
       PROMETHEUS_URL: http://prometheus:9090
-      ALLOWED_ORIGINS: http://localhost:5173
-    depends_on:
-      prometheus:
-        condition: service_healthy
+      ALLOWED_ORIGINS: http://localhost:5173,http://localhost
+    deploy:
+      resources:
+        limits:
+          cpus: '0.25'
+          memory: 128M
     healthcheck:
       test: ["CMD-SHELL", "wget -qO- http://localhost:3006/health || exit 1"]
       interval: 30s
@@ -357,6 +523,10 @@ services:
         BUILD_REVISION: local
     container_name: idp-logging-service
     restart: unless-stopped
+    networks: [idp-network]
+    depends_on:
+      loki:
+        condition: service_healthy
     ports:
       - "3007:3007"
     environment:
@@ -364,11 +534,14 @@ services:
       PORT: 3007
       JWT_SECRET: ***REMOVED***
       JWT_ISSUER: idp-platform
+      JWT_ALGORITHM: HS256
       LOKI_URL: http://loki:3100
-      ALLOWED_ORIGINS: http://localhost:5173
-    depends_on:
-      loki:
-        condition: service_healthy
+      ALLOWED_ORIGINS: http://localhost:5173,http://localhost
+    deploy:
+      resources:
+        limits:
+          cpus: '0.25'
+          memory: 128M
     healthcheck:
       test: ["CMD-SHELL", "wget -qO- http://localhost:3007/health || exit 1"]
       interval: 30s
@@ -383,8 +556,9 @@ services:
         BUILD_REVISION: local
     container_name: idp-alert-service
     restart: unless-stopped
+    networks: [idp-network]
     depends_on:
-      postgres:
+      pgbouncer:
         condition: service_healthy
       alertmanager:
         condition: service_healthy
@@ -393,22 +567,29 @@ services:
     environment:
       NODE_ENV: development
       PORT: 3008
-      DB_HOST: postgres
-      DB_PORT: 5432
+      DB_HOST: pgbouncer
+      DB_PORT: 6432
       DB_USERNAME: idp
       DB_PASSWORD: ***REMOVED***
       DB_NAME: idp
       DB_SCHEMA: alert
       JWT_SECRET: ***REMOVED***
       JWT_ISSUER: idp-platform
+      JWT_ALGORITHM: HS256
       ALERTMANAGER_URL: http://alertmanager:9093
       WEBHOOK_TOKEN: ***REMOVED***
-      ALLOWED_ORIGINS: http://localhost:5173
+      ALLOWED_ORIGINS: http://localhost:5173,http://localhost
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 256M
     healthcheck:
       test: ["CMD-SHELL", "wget -qO- http://localhost:3008/health || exit 1"]
       interval: 30s
       timeout: 5s
       retries: 3
+      start_period: 20s
 
   notification-service:
     build:
@@ -418,6 +599,7 @@ services:
         BUILD_REVISION: local
     container_name: idp-notification-service
     restart: unless-stopped
+    networks: [idp-network]
     ports:
       - "3009:3009"
     environment:
@@ -425,24 +607,23 @@ services:
       PORT: 3009
       JWT_SECRET: ***REMOVED***
       JWT_ISSUER: idp-platform
+      JWT_ALGORITHM: HS256
       WEBHOOK_TOKEN: ***REMOVED***
-      ALLOWED_ORIGINS: http://localhost:5173
-      # Set these to activate channels:
-      # SLACK_WEBHOOK_URL: https://hooks.slack.com/services/...
-      # DISCORD_WEBHOOK_URL: https://discord.com/api/webhooks/...
-      # GENERIC_WEBHOOK_URL: https://your-webhook.com/hook
-      # SMTP_HOST: smtp.gmail.com
-      # SMTP_PORT: 587
-      # SMTP_USER: your@gmail.com
-      # SMTP_PASS: your-app-password
-      # ALERT_EMAIL_TO: team@yourcompany.com
+      ALLOWED_ORIGINS: http://localhost:5173,http://localhost
+      # Uncomment to activate channels:
+      # SLACK_WEBHOOK_URL: ${SLACK_WEBHOOK_URL:-}
+      # SMTP_HOST: ${SMTP_HOST:-}
+    deploy:
+      resources:
+        limits:
+          cpus: '0.25'
+          memory: 128M
     healthcheck:
       test: ["CMD-SHELL", "wget -qO- http://localhost:3009/health || exit 1"]
       interval: 30s
       timeout: 5s
       retries: 3
 
-  # ── Phase 9 services ──────────────────────────────────────────────────────
   audit-service:
     build:
       context: .
@@ -451,27 +632,35 @@ services:
         BUILD_REVISION: local
     container_name: idp-audit-service
     restart: unless-stopped
+    networks: [idp-network]
     depends_on:
-      postgres:
+      pgbouncer:
         condition: service_healthy
     ports:
       - "3010:3010"
     environment:
       NODE_ENV: development
       PORT: 3010
-      DB_HOST: postgres
-      DB_PORT: 5432
+      DB_HOST: pgbouncer
+      DB_PORT: 6432
       DB_USERNAME: idp
       DB_PASSWORD: ***REMOVED***
       DB_NAME: idp
       JWT_SECRET: ***REMOVED***
       JWT_ISSUER: idp-platform
-      ALLOWED_ORIGINS: http://localhost:5173
+      JWT_ALGORITHM: HS256
+      ALLOWED_ORIGINS: http://localhost:5173,http://localhost
+    deploy:
+      resources:
+        limits:
+          cpus: '0.25'
+          memory: 128M
     healthcheck:
       test: ["CMD-SHELL", "wget -qO- http://localhost:3010/health || exit 1"]
       interval: 30s
       timeout: 5s
       retries: 3
+      start_period: 20s
 
   cost-service:
     build:
@@ -481,9 +670,8 @@ services:
         BUILD_REVISION: local
     container_name: idp-cost-service
     restart: unless-stopped
+    networks: [idp-network]
     depends_on:
-      postgres:
-        condition: service_healthy
       prometheus:
         condition: service_healthy
     ports:
@@ -491,26 +679,24 @@ services:
     environment:
       NODE_ENV: development
       PORT: 3011
-      DB_HOST: postgres
-      DB_PORT: 5432
-      DB_USERNAME: idp
-      DB_PASSWORD: ***REMOVED***
-      DB_NAME: idp
       JWT_SECRET: ***REMOVED***
       JWT_ISSUER: idp-platform
-      # Docker Compose DNS
+      JWT_ALGORITHM: HS256
       PROMETHEUS_URL: http://prometheus:9090
-      # Price model (AWS t3.medium equivalent rates)
       PRICE_CPU_PER_VCPU_HOUR: "0.048"
       PRICE_MEMORY_PER_GB_HOUR: "0.006"
-      ALLOWED_ORIGINS: http://localhost:5173
+      ALLOWED_ORIGINS: http://localhost:5173,http://localhost
+    deploy:
+      resources:
+        limits:
+          cpus: '0.25'
+          memory: 128M
     healthcheck:
       test: ["CMD-SHELL", "wget -qO- http://localhost:3011/health || exit 1"]
       interval: 30s
       timeout: 5s
       retries: 3
 
-  # ── Phase 11 — AI Copilot ─────────────────────────────────────────────────
   ai-copilot-service:
     build:
       context: .
@@ -519,6 +705,12 @@ services:
         BUILD_REVISION: local
     container_name: idp-ai-copilot-service
     restart: unless-stopped
+    networks: [idp-network]
+    depends_on:
+      alert-service:
+        condition: service_healthy
+      cost-service:
+        condition: service_healthy
     ports:
       - "3012:3012"
     environment:
@@ -526,52 +718,42 @@ services:
       PORT: 3012
       JWT_SECRET: ***REMOVED***
       JWT_ISSUER: idp-platform
-      # Groq API
-      GROQ_API_KEY: ${GROQ_API_KEY}
-      GROQ_MODEL: openai/gpt-oss-120b
+      JWT_ALGORITHM: HS256
+      GROQ_API_KEY: ${GROQ_API_KEY:-}
+      GROQ_MODEL: llama3-70b-8192
       GROQ_MAX_TOKENS: "2048"
-      # Docker Compose DNS — live platform data for context
       ALERT_SERVICE_URL: http://alert-service:3008
       COST_SERVICE_URL: http://cost-service:3011
       MONITORING_SERVICE_URL: http://monitoring-service:3006
       LOGGING_SERVICE_URL: http://logging-service:3007
-      ALLOWED_ORIGINS: http://localhost:5173
-    depends_on:
-      alert-service:
-        condition: service_healthy
-      cost-service:
-        condition: service_healthy
+      ALLOWED_ORIGINS: http://localhost:5173,http://localhost
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 256M
     healthcheck:
       test: ["CMD-SHELL", "wget -qO- http://localhost:3012/health || exit 1"]
       interval: 30s
       timeout: 5s
       retries: 3
 
-  # ── Frontend (use npm run dev locally; docker for testing builds) ─────────────
   frontend:
     build:
       context: frontend
       dockerfile: Dockerfile
-      args:
-        BUILD_REVISION: local
-        BUILD_DATE: "2024-01-01T00:00:00Z"
     container_name: idp-frontend
     restart: unless-stopped
+    networks: [idp-network]
     ports:
-      - "8080:8080"
-    depends_on:
-      - auth-service
+      - "5173:8080"
+    deploy:
+      resources:
+        limits:
+          cpus: '0.25'
+          memory: 64M
     healthcheck:
-      test: ["CMD-SHELL", "wget -qO- http://localhost:8080/health || exit 1"]
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:8080/health || exit 1"]
       interval: 30s
       timeout: 5s
       retries: 3
-    profiles: ["full"]
-
-volumes:
-  postgres_data:
-  redis_data:
-  prometheus_data:
-  grafana_data:
-  loki_data:
-  alertmanager_data:

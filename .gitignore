@@ -104,3 +104,6 @@ id_ed25519
 .env.production
 .env.staging
 secrets/
+secrets/jwt/private.pem
+secrets/jwt/*.p12
+secrets/jwt/*.pfx
