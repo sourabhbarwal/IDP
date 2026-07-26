@@ -3,8 +3,6 @@ import { ConfigService } from '@nestjs/config';
 import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy } from 'passport-jwt';
 import { Algorithm } from 'jsonwebtoken';
-import * as fs from 'fs';
-import * as path from 'path';
 import { AccessTokenClaims } from '../../application/ports/token-provider.port';
 
 export interface AuthenticatedUser {
@@ -12,12 +10,6 @@ export interface AuthenticatedUser {
   email: string;
   roles: string[];
   permissions: string[];
-}
-
-function loadKey(envVarPath: string | undefined): string | undefined {
-  if (!envVarPath) return undefined;
-  const resolved = path.resolve(envVarPath);
-  return fs.existsSync(resolved) ? fs.readFileSync(resolved, 'utf8') : undefined;
 }
 
 @Injectable()
