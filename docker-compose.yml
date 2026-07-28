@@ -205,6 +205,7 @@ services:
       - "3100:3100"
     volumes:
       - ./monitoring/loki/loki-config.yaml:/etc/loki/loki-config.yaml:ro
+      - ./monitoring/loki/loki-rules.yaml:/tmp/loki/rules/fake/rules.yaml:ro
       - loki_data:/tmp/loki
     command: -config.file=/etc/loki/loki-config.yaml
     deploy:
@@ -283,6 +284,60 @@ services:
           cpus: '0.25'
           memory: 128M
 
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor:v0.49.1
+    container_name: idp-cadvisor
+    restart: unless-stopped
+    networks: [idp-network]
+    ports:
+      - "8080:8080"
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:ro
+      - /sys:/sys:ro
+      - /var/lib/docker/:/var/lib/docker:ro
+      - /dev/disk/:/dev/disk:ro
+    privileged: true
+    devices:
+      - /dev/kmsg
+    command:
+      - --housekeeping_interval=10s
+      - --docker_only=true
+      - --disable_metrics=percpu,sched,tcp,udp,disk,diskIO,hugetlb,referenced_memory,cpu_topology,resctrl
+    deploy:
+      resources:
+        limits:
+          cpus: '0.25'
+          memory: 128M
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8080/healthz"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+
+  tempo:
+    image: grafana/tempo:2.6.0
+    container_name: idp-tempo
+    restart: unless-stopped
+    networks: [idp-network]
+    ports:
+      - "3200:3200"   # Tempo HTTP API
+      - "4319:4317"   # OTLP gRPC (different from otel-collector's 4317)
+    volumes:
+      - ./monitoring/tempo/tempo-config.yaml:/etc/tempo/tempo-config.yaml:ro
+    command: -config.file=/etc/tempo/tempo-config.yaml
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 256M
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3200/ready"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+
   # ── Backend Services ──────────────────────────────────────────────────────────
   # Note: DB_HOST points to pgbouncer (connection pooling)
   # Individual ports kept for local dev debugging — remove in production
@@ -320,6 +375,7 @@ services:
       JWT_ACCESS_TOKEN_TTL_SECONDS: 900
       JWT_REFRESH_TOKEN_TTL_SECONDS: 604800
       ALLOWED_ORIGINS: http://localhost:5173,http://localhost:80,http://localhost
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4317
     deploy:
       resources:
         limits:
@@ -359,6 +415,7 @@ services:
       JWT_ISSUER: idp-platform
       JWT_ALGORITHM: HS256
       ALLOWED_ORIGINS: http://localhost:5173,http://localhost
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4317
     deploy:
       resources:
         limits:
@@ -400,6 +457,7 @@ services:
       GITHUB_OWNER: your-github-username
       GITHUB_TOKEN: ${GITHUB_TOKEN:-}
       ALLOWED_ORIGINS: http://localhost:5173,http://localhost
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4317
     deploy:
       resources:
         limits:
@@ -430,6 +488,7 @@ services:
       JWT_ISSUER: idp-platform
       JWT_ALGORITHM: HS256
       ALLOWED_ORIGINS: http://localhost:5173,http://localhost
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4317
     deploy:
       resources:
         limits:
@@ -470,6 +529,7 @@ services:
       JWT_ALGORITHM: HS256
       KUBECONFIG_PATH: ""
       ALLOWED_ORIGINS: http://localhost:5173,http://localhost
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4317
     deploy:
       resources:
         limits:
@@ -504,6 +564,7 @@ services:
       JWT_ALGORITHM: HS256
       PROMETHEUS_URL: http://prometheus:9090
       ALLOWED_ORIGINS: http://localhost:5173,http://localhost
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4317
     deploy:
       resources:
         limits:
@@ -537,6 +598,7 @@ services:
       JWT_ALGORITHM: HS256
       LOKI_URL: http://loki:3100
       ALLOWED_ORIGINS: http://localhost:5173,http://localhost
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4317
     deploy:
       resources:
         limits:
@@ -579,6 +641,7 @@ services:
       ALERTMANAGER_URL: http://alertmanager:9093
       WEBHOOK_TOKEN: ***REMOVED***
       ALLOWED_ORIGINS: http://localhost:5173,http://localhost
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4317
     deploy:
       resources:
         limits:
@@ -610,6 +673,7 @@ services:
       JWT_ALGORITHM: HS256
       WEBHOOK_TOKEN: ***REMOVED***
       ALLOWED_ORIGINS: http://localhost:5173,http://localhost
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4317
       # Uncomment to activate channels:
       # SLACK_WEBHOOK_URL: ${SLACK_WEBHOOK_URL:-}
       # SMTP_HOST: ${SMTP_HOST:-}
@@ -650,6 +714,7 @@ services:
       JWT_ISSUER: idp-platform
       JWT_ALGORITHM: HS256
       ALLOWED_ORIGINS: http://localhost:5173,http://localhost
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4317
     deploy:
       resources:
         limits:
@@ -686,6 +751,7 @@ services:
       PRICE_CPU_PER_VCPU_HOUR: "0.048"
       PRICE_MEMORY_PER_GB_HOUR: "0.006"
       ALLOWED_ORIGINS: http://localhost:5173,http://localhost
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4317
     deploy:
       resources:
         limits:
@@ -727,6 +793,7 @@ services:
       MONITORING_SERVICE_URL: http://monitoring-service:3006
       LOGGING_SERVICE_URL: http://logging-service:3007
       ALLOWED_ORIGINS: http://localhost:5173,http://localhost
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4317
     deploy:
       resources:
         limits:

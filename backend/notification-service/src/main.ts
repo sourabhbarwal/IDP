@@ -2,6 +2,9 @@ import { NestFactory } from '@nestjs/core';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { NotificationModule } from './notification.module';
 import { applySecurity } from  '@idp/common';
+import { initTracing } from '@idp/common';
+
+initTracing('notification-service');
 async function bootstrap(): Promise<void> {
   const app = await NestFactory.create(NotificationModule);
   applySecurity(app);

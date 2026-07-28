@@ -1,0 +1,49 @@
+groups:
+  - name: idp-log-alerts
+    interval: 1m
+    rules:
+      # Alert on high error rate in logs
+      - alert: HighLogErrorRate
+        expr: |
+          sum(count_over_time({compose_project="idp"} |= "error" [5m])) > 10
+        for: 5m
+        labels:
+          severity: warning
+          source: loki
+        annotations:
+          summary: "High error log rate across IDP Platform"
+          description: "More than 10 error log lines in the last 5 minutes across all services."
+
+      - alert: CriticalLogErrorRate
+        expr: |
+          sum(count_over_time({compose_project="idp"} |= "error" [5m])) > 50
+        for: 2m
+        labels:
+          severity: critical
+          source: loki
+        annotations:
+          summary: "Critical error log rate across IDP Platform"
+          description: "More than 50 error log lines in 5 minutes — possible incident in progress."
+
+      # Alert on fatal errors
+      - alert: FatalErrorInLogs
+        expr: |
+          sum(count_over_time({compose_project="idp"} |~ "(?i)(panic|FATAL|fatal|critical)" [1m])) > 0
+        labels:
+          severity: critical
+          source: loki
+        annotations:
+          summary: "Fatal error detected in IDP Platform logs"
+          description: "A PANIC, FATAL, or CRITICAL log line was detected. Immediate attention required."
+
+      # Alert on auth failures
+      - alert: HighAuthFailureRate
+        expr: |
+          sum(count_over_time({service="auth-service"} |= "Invalid credentials" [5m])) > 20
+        for: 5m
+        labels:
+          severity: warning
+          source: loki
+        annotations:
+          summary: "High authentication failure rate"
+          description: "More than 20 invalid credential attempts in 5 minutes on auth-service. Possible brute force attack."

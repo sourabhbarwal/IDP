@@ -3,6 +3,9 @@ import { ValidationPipe } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { AiCopilotModule } from './ai-copilot.module';
 import { GlobalExceptionFilter, applySecurity } from '@idp/common';
+import { initTracing } from '@idp/common';
+
+initTracing('ai-copilot-service');
 
 async function bootstrap(): Promise<void> {
   const app = await NestFactory.create(AiCopilotModule);

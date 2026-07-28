@@ -2,6 +2,9 @@ import { NestFactory } from '@nestjs/core';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { LoggingModule } from './logging.module';
 import { applySecurity } from '@idp/common';
+import { initTracing } from '@idp/common';
+
+initTracing('logging-module');
 async function bootstrap(): Promise<void> {
   const app = await NestFactory.create(LoggingModule);
   applySecurity(app);

@@ -19,19 +19,35 @@ processors:
       - key: deployment.environment
         value: development
         action: upsert
+  # Add trace ID to logs for correlation
+  attributes:
+    actions:
+      - key: service.name
+        action: upsert
+        from_attribute: service.name
 
 exporters:
-  debug:
-    verbosity: normal
+  # Forward traces to Tempo
+  otlp/tempo:
+    endpoint: tempo:4317
+    tls:
+      insecure: true
+
+  # Forward metrics to Prometheus
   prometheus:
     endpoint: "0.0.0.0:8889"
+    namespace: otel
+
+  # Debug logging (reduce verbosity in prod)
+  debug:
+    verbosity: basic
 
 service:
   pipelines:
     traces:
       receivers: [otlp]
-      processors: [memory_limiter, batch]
-      exporters: [debug]
+      processors: [memory_limiter, resource, batch]
+      exporters: [otlp/tempo, debug]
     metrics:
       receivers: [otlp]
       processors: [memory_limiter, batch]

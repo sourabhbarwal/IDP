@@ -3,7 +3,9 @@ import { ValidationPipe } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { ServiceCatalogModule } from './service-catalog.module';
 import { GlobalExceptionFilter, applySecurity } from '@idp/common';
+import { initTracing } from '@idp/common';
 
+initTracing('service-catalog-service');
 async function bootstrap(): Promise<void> {
   const app = await NestFactory.create(ServiceCatalogModule);
 

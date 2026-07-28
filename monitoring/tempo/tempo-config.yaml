@@ -1,0 +1,46 @@
+stream_over_http_enabled: true
+
+server:
+  http_listen_port: 3200
+  log_level: warn
+
+distributor:
+  receivers:
+    otlp:
+      protocols:
+        grpc:
+          endpoint: 0.0.0.0:4317
+        http:
+          endpoint: 0.0.0.0:4318
+
+ingester:
+  max_block_duration: 5m
+
+compactor:
+  compaction:
+    block_retention: 24h  # Keep traces for 24h in local dev
+
+storage:
+  trace:
+    backend: local
+    local:
+      path: /tmp/tempo/blocks
+    wal:
+      path: /tmp/tempo/wal
+
+metrics_generator:
+  registry:
+    external_labels:
+      source: tempo
+      cluster: idp-local
+  storage:
+    path: /tmp/tempo/generator/wal
+    remote_write:
+      - url: http://prometheus:9090/api/v1/write
+        send_exemplars: true
+
+overrides:
+  defaults:
+    metrics_generator:
+      processors: [service-graphs, span-metrics]
+      generate_native_histograms: both

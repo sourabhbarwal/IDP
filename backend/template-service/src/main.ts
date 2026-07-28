@@ -3,7 +3,9 @@ import { ValidationPipe } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { TemplateModule } from './template.module';
 import { GlobalExceptionFilter, applySecurity } from '@idp/common';
+import { initTracing } from '@idp/common';
 
+initTracing('template-service');
 async function bootstrap(): Promise<void> {
   const app = await NestFactory.create(TemplateModule);
   applySecurity(app);

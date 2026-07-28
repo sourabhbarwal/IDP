@@ -3,6 +3,9 @@ import { ValidationPipe } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { AlertModule } from './alert.module';
 import { GlobalExceptionFilter, applySecurity } from '@idp/common';
+import { initTracing } from '@idp/common';
+
+initTracing('alert-service')
 
 async function bootstrap(): Promise<void> {
   const app = await NestFactory.create(AlertModule);
