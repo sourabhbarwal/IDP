@@ -6,10 +6,10 @@ import axios from 'axios';
  * In production (served via Nginx): all routes go through port 80.
  *
  * Controlled by VITE_API_BASE_URL env var.
- * Development: unset (uses individual service ports)
+ * Development: unset (falls back to auth-service on 3001, matching authSlice usage)
  * Production:  VITE_API_BASE_URL=http://localhost (uses Nginx)
  */
-const BASE_URL = import.meta.env.VITE_API_BASE_URL ?? '';
+const BASE_URL = `${import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:3001'}/api/v1`;
 
 export const apiClient = axios.create({
   baseURL: BASE_URL,

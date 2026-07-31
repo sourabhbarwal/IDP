@@ -102,8 +102,9 @@ export class AuthController {
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Get current authenticated user' })
-  async me(@CurrentUser() user: AuthenticatedUser) {
-    return this.getCurrentUserUseCase.execute(user.userId);
+  async me(@CurrentUser() user: AuthenticatedUser): Promise<UserResponseDto> {
+    const currentUser = await this.getCurrentUserUseCase.execute(user.userId);
+    return UserResponseDto.fromDomain(currentUser);
   }
 
   @Post('logout')

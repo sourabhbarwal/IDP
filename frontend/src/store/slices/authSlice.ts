@@ -61,7 +61,7 @@ export const logout = createAsyncThunk('auth/logout', async () => {
 
 export const getMe = createAsyncThunk('auth/getMe', async (_, { rejectWithValue }) => {
   try {
-    const { data } = await apiClient.get<User>('/users/me');
+    const { data } = await apiClient.get<User>('/auth/me');
     localStorage.setItem('user', JSON.stringify(data));
     return data;
   } catch (err: any) {
