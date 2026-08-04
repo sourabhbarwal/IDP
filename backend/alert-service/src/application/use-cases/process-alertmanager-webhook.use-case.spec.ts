@@ -39,8 +39,7 @@ describe('ProcessAlertManagerWebhookUseCase', () => {
     get: jest.fn((key: string, def?: string) => def ?? ''),
   } as unknown as ConfigService;
 
-  beforeEach(() => { jest.clearAllMocks(); useCase = new ProcessAlertManagerWebhookUseCase(mockRepo); });
-
+  beforeEach(() => { jest.clearAllMocks(); useCase = new ProcessAlertManagerWebhookUseCase(mockRepo, mockConfig); });
   it('upserts each alert from the payload', async () => {
     mockRepo.upsertFromAlertManager.mockResolvedValue(makeEvent());
 
