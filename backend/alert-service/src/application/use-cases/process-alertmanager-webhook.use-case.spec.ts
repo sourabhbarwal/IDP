@@ -3,6 +3,7 @@ import { AlertEvent } from '../../domain/entities/alert-event.entity';
 import { AlertSeverity } from '../../domain/enums/alert-severity.enum';
 import { AlertStatus } from '../../domain/enums/alert-status.enum';
 import { AlertEventRepository } from '../../domain/repositories/alert-event.repository.port';
+import { ConfigService } from '@nestjs/config';
 
 const mockRepo: jest.Mocked<AlertEventRepository> = {
   findById: jest.fn(), findActive: jest.fn(), findByServiceId: jest.fn(),
@@ -34,6 +35,10 @@ const payload: AlertManagerWebhookPayload = {
 
 describe('ProcessAlertManagerWebhookUseCase', () => {
   let useCase: ProcessAlertManagerWebhookUseCase;
+  const mockConfig = {
+    get: jest.fn((key: string, def?: string) => def ?? ''),
+  } as unknown as ConfigService;
+
   beforeEach(() => { jest.clearAllMocks(); useCase = new ProcessAlertManagerWebhookUseCase(mockRepo); });
 
   it('upserts each alert from the payload', async () => {

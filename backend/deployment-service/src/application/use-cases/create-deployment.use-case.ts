@@ -132,12 +132,11 @@ export class CreateDeploymentUseCase {
           metadata: { strategy: command.strategy, environment: command.environment },
         }),
       );
-      await this.notifyRealtime('deployment:succeeded', updated, 'info');
-
       const updated = await this.deploymentRepository.findById(record.id);
       if (!updated) {
         throw new Error(`Deployment record ${record.id} not found after creation`);
       }
+      await this.notifyRealtime('deployment:succeeded', updated, 'info');
       return updated;
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
