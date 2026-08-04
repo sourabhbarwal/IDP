@@ -14,25 +14,31 @@ import CostPage from './pages/cost/CostPage';
 import ProtectedRoute from './components/layout/ProtectedRoute';
 import CopilotPage from './pages/copilot/CopilotPage';
 
+function AppRoutes() {
+  return (
+    <BrowserRouter>
+      <Routes>
+        <Route path="/login"       element={<LoginPage />} />
+        <Route path="/register"    element={<RegisterPage />} />
+        <Route path="/dashboard"   element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />
+        <Route path="/catalog"     element={<ProtectedRoute><ServiceListPage /></ProtectedRoute>} />
+        <Route path="/catalog/new" element={<ProtectedRoute><CreateServicePage /></ProtectedRoute>} />
+        <Route path="/catalog/:id" element={<ProtectedRoute><ServiceDetailPage /></ProtectedRoute>} />
+        <Route path="/templates"   element={<ProtectedRoute><TemplateGalleryPage /></ProtectedRoute>} />
+        <Route path="/monitoring"  element={<ProtectedRoute><MonitoringPage /></ProtectedRoute>} />
+        <Route path="/alerts"      element={<ProtectedRoute><AlertsPage /></ProtectedRoute>} />
+        <Route path="/cost"        element={<ProtectedRoute><CostPage /></ProtectedRoute>} />
+        <Route path="/copilot"     element={<ProtectedRoute><CopilotPage /></ProtectedRoute>} />
+        <Route path="*"            element={<Navigate to="/login" replace />} />
+      </Routes>
+    </BrowserRouter>
+  );
+}
+
 export default function App() {
   return (
     <Provider store={store}>
-      <BrowserRouter>
-        <Routes>
-          <Route path="/login" element={<LoginPage />} />
-          <Route path="/register" element={<RegisterPage />} />
-          <Route path="/dashboard" element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />
-          <Route path="/catalog" element={<ProtectedRoute><ServiceListPage /></ProtectedRoute>} />
-          <Route path="/catalog/new" element={<ProtectedRoute><CreateServicePage /></ProtectedRoute>} />
-          <Route path="/catalog/:id" element={<ProtectedRoute><ServiceDetailPage /></ProtectedRoute>} />
-          <Route path="/templates" element={<ProtectedRoute><TemplateGalleryPage /></ProtectedRoute>} />
-          <Route path="/monitoring" element={<ProtectedRoute><MonitoringPage /></ProtectedRoute>} />
-          <Route path="/alerts" element={<ProtectedRoute><AlertsPage /></ProtectedRoute>} />
-          <Route path="/cost" element={<ProtectedRoute><CostPage /></ProtectedRoute>} />
-          <Route path="*" element={<Navigate to="/login" replace />} />
-          <Route path="/copilot" element={<ProtectedRoute><CopilotPage /></ProtectedRoute>} />
-        </Routes>
-      </BrowserRouter>
+      <AppRoutes />
     </Provider>
   );
 }

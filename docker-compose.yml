@@ -642,6 +642,8 @@ services:
       WEBHOOK_TOKEN: ***REMOVED***
       ALLOWED_ORIGINS: http://localhost:5173,http://localhost
       OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4317
+      REALTIME_SERVICE_URL: http://realtime-service:3013
+      INTERNAL_WEBHOOK_TOKEN: ***REMOVED***
     deploy:
       resources:
         limits:
@@ -821,6 +823,41 @@ services:
           memory: 64M
     healthcheck:
       test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:8080/health || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  realtime-service:
+    build:
+      context: .
+      dockerfile: backend/realtime-service/Dockerfile
+      args:
+        BUILD_REVISION: local
+    container_name: idp-realtime-service
+    restart: unless-stopped
+    networks: [idp-network]
+    depends_on:
+      redis:
+        condition: service_healthy
+    ports:
+      - "3013:3013"
+    environment:
+      NODE_ENV: development
+      PORT: 3013
+      JWT_SECRET: ***REMOVED***
+      JWT_ISSUER: idp-platform
+      # Internal webhook token — other services use this to POST events
+      INTERNAL_WEBHOOK_TOKEN: ***REMOVED***
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      ALLOWED_ORIGINS: http://localhost:5173,http://localhost
+    deploy:
+      resources:
+        limits:
+          cpus: '0.25'
+          memory: 128M
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:3013/health || exit 1"]
       interval: 30s
       timeout: 5s
       retries: 3

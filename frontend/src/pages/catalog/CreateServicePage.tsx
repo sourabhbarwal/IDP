@@ -6,6 +6,8 @@ import { z } from 'zod';
 import { useAppDispatch, useAppSelector } from '../../hooks/redux';
 import { createService, clearError } from '../../store/slices/catalogSlice';
 import { ServiceType } from '../../types/catalog.types';
+import { useRealtime } from '../../context/RealtimeContext';
+import { NotificationCenter } from '../../components/notifications/NotificationCenter';
 
 const schema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters').max(100),
@@ -22,7 +24,7 @@ export default function CreateServicePage() {
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
   const { loading, error } = useAppSelector((s) => s.catalog);
-
+  const { connected, notifications, unreadCount, markAllRead, markRead } = useRealtime();
   const { register, handleSubmit, formState: { errors } } = useForm<FormData>({
     resolver: zodResolver(schema),
     defaultValues: { type: 'NODEJS' },
@@ -51,6 +53,15 @@ export default function CreateServicePage() {
         <Link to="/catalog" className="text-gray-500 hover:text-gray-800 text-sm">← Service Catalog</Link>
         <span className="text-gray-300">/</span>
         <span className="text-gray-700 font-medium text-sm">New Service</span>
+        <div className="ml-auto">
+          <NotificationCenter
+            connected={connected}
+            notifications={notifications}
+            unreadCount={unreadCount}
+            onMarkAllRead={markAllRead}
+            onMarkRead={markRead}
+          />
+        </div>
       </nav>
 
       <main className="max-w-2xl mx-auto p-8">

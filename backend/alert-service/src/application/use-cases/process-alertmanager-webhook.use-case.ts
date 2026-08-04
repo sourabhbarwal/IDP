@@ -1,4 +1,5 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { AlertSeverity } from '../../domain/enums/alert-severity.enum';
 import { AlertStatus } from '../../domain/enums/alert-status.enum';
 import {
@@ -29,33 +30,87 @@ export interface AlertManagerWebhookPayload {
 @Injectable()
 export class ProcessAlertManagerWebhookUseCase {
   private readonly logger = new Logger(ProcessAlertManagerWebhookUseCase.name);
+  private readonly realtimeServiceUrl: string;
+  private readonly internalToken: string;
 
   constructor(
     @Inject(ALERT_EVENT_REPOSITORY) private readonly repo: AlertEventRepository,
-  ) {}
+    private readonly config: ConfigService,
+  ) {
+    this.realtimeServiceUrl = config.get<string>(
+      'REALTIME_SERVICE_URL',
+      'http://realtime-service:3013',
+    );
+    this.internalToken = config.get<string>(
+      'INTERNAL_WEBHOOK_TOKEN',
+      '***REMOVED***',
+    );
+  }
 
   async execute(payload: AlertManagerWebhookPayload): Promise<void> {
     this.logger.log(
-      `Processing AlertManager webhook: ${payload.alerts.length} alerts, status=${payload.status}`,
+      `Processing AlertManager webhook: ${payload.alerts.length} alerts, ` +
+      `status=${payload.status}`,
     );
 
     for (const alert of payload.alerts) {
-      const severity = (alert.labels['severity'] as AlertSeverity) ?? AlertSeverity.WARNING;
-      const status = alert.status === 'firing' ? AlertStatus.FIRING : AlertStatus.RESOLVED;
+      const severity =
+        (alert.labels['severity'] as AlertSeverity) ?? AlertSeverity.WARNING;
+      const status =
+        alert.status === 'firing' ? AlertStatus.FIRING : AlertStatus.RESOLVED;
       const namespace = alert.labels['namespace'] ?? null;
 
-      await this.repo.upsertFromAlertManager({
-        alertName: alert.labels['alertname'] ?? 'unknown',
+      const event = await this.repo.upsertFromAlertManager({
+        alertName:   alert.labels['alertname'] ?? 'unknown',
         severity,
         status,
         namespace,
-        labels: alert.labels,
+        labels:      alert.labels,
         annotations: alert.annotations,
-        startsAt: new Date(alert.startsAt),
-        endsAt: alert.endsAt && alert.endsAt !== '0001-01-01T00:00:00Z'
-          ? new Date(alert.endsAt)
-          : null,
+        startsAt:    new Date(alert.startsAt),
+        endsAt:
+          alert.endsAt && alert.endsAt !== '0001-01-01T00:00:00Z'
+            ? new Date(alert.endsAt)
+            : null,
       });
+
+      await this.publishToRealtime(event.alertName, severity, status, namespace, alert.annotations);
+    }
+  }
+
+  private async publishToRealtime(
+    alertName: string,
+    severity: AlertSeverity,
+    status: AlertStatus,
+    namespace: string | null,
+    annotations: Record<string, string>,
+  ): Promise<void> {
+    const eventType = status === AlertStatus.FIRING
+      ? 'alert:fired'
+      : 'alert:resolved';
+
+    try {
+      await fetch(`${this.realtimeServiceUrl}/api/v1/events`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-internal-token': this.internalToken,
+        },
+        body: JSON.stringify({
+          type:     eventType,
+          severity: severity === AlertSeverity.CRITICAL ? 'critical' : 'warning',
+          payload: {
+            alertName,
+            severity,
+            status,
+            namespace,
+            summary: annotations['summary'] ?? alertName,
+          },
+        }),
+        signal: AbortSignal.timeout(3000),
+      });
+    } catch (err) {
+      this.logger.warn(`Could not notify realtime-service: ${err}`);
     }
   }
 }

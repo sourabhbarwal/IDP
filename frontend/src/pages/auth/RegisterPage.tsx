@@ -23,7 +23,6 @@ export default function RegisterPage() {
   const navigate = useNavigate();
   const { loading, error } = useAppSelector((s) => s.auth);
   const [success, setSuccess] = useState(false);
-
   const { register, handleSubmit, formState: { errors } } = useForm<FormData>({
     resolver: zodResolver(schema),
   });

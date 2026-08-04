@@ -4,7 +4,8 @@ import { useAppDispatch, useAppSelector } from '../../hooks/redux';
 import { fetchServiceById, updateService, deleteService } from '../../store/slices/catalogSlice';
 import { fetchRepositoryByServiceId, provisionRepository } from '../../store/slices/repositorySlice';
 import { ServiceStatus } from '../../types/catalog.types';
-
+import { useRealtime } from '../../context/RealtimeContext';
+import { NotificationCenter } from '../../components/notifications/NotificationCenter';
 const TYPE_COLORS: Record<string, string> = {
   NODEJS: 'bg-green-100 text-green-700', SPRING_BOOT: 'bg-blue-100 text-blue-700',
   FASTAPI: 'bg-yellow-100 text-yellow-700', GO: 'bg-cyan-100 text-cyan-700',
@@ -26,7 +27,7 @@ export default function ServiceDetailPage() {
   const { selectedService: service, loading, error } = useAppSelector((s) => s.catalog);
   const { repositoriesByServiceId, loading: repoLoading, error: repoError } = useAppSelector((s) => s.repository);
   const { user } = useAppSelector((s) => s.auth);
-
+  const { connected, notifications, unreadCount, markAllRead, markRead } = useRealtime();
   const [updatingStatus, setUpdatingStatus] = useState(false);
 
   const repository = service ? repositoriesByServiceId[service.id] : null;
@@ -95,6 +96,15 @@ export default function ServiceDetailPage() {
         <Link to="/catalog" className="text-gray-500 hover:text-gray-800 text-sm">← Service Catalog</Link>
         <span className="text-gray-300">/</span>
         <span className="text-gray-700 font-medium text-sm font-mono">{service.name}</span>
+        <div className="ml-auto">
+          <NotificationCenter
+            connected={connected}
+            notifications={notifications}
+            unreadCount={unreadCount}
+            onMarkAllRead={markAllRead}
+            onMarkRead={markRead}
+          />
+        </div>
       </nav>
 
       <main className="max-w-5xl mx-auto p-8">

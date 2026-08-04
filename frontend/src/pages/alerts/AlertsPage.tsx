@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAppSelector } from '../../hooks/redux';
 import { alertService, AlertEvent, AlertRule } from '../../services/alert.service';
+import { useRealtime } from '../../context/RealtimeContext';
+import { NotificationCenter } from '../../components/notifications/NotificationCenter';
 
 const SEVERITY_COLOR: Record<string, string> = {
   critical: 'bg-red-100 text-red-700 border-red-200',
@@ -33,6 +35,7 @@ export default function AlertsPage() {
   const [error, setError] = useState<string | null>(null);
   const [acknowledging, setAcknowledging] = useState<string | null>(null);
   const [showCreateForm, setShowCreateForm] = useState(false);
+  const { connected, notifications, unreadCount, markAllRead, markRead } = useRealtime();
   const [newRule, setNewRule] = useState<{
     name: string;
     promqlExpression: string;
@@ -147,6 +150,13 @@ export default function AlertsPage() {
               {firingWarning} Warning
             </span>
           )}
+          <NotificationCenter
+            connected={connected}
+            notifications={notifications}
+            unreadCount={unreadCount}
+            onMarkAllRead={markAllRead}
+            onMarkRead={markRead}
+          />
           <span className="text-sm text-gray-400">{user?.email}</span>
         </div>
       </nav>

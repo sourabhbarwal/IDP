@@ -40,6 +40,41 @@ export class CreateDeploymentUseCase {
     private readonly canaryStrategy: CanaryStrategy,
   ) {}
 
+  private async notifyRealtime(
+    eventType: string,
+    deployment: Deployment,
+    severity: 'info' | 'warning' | 'critical' = 'info',
+  ): Promise<void> {
+    const url = process.env.REALTIME_SERVICE_URL ?? 'http://realtime-service:3013';
+    const token = process.env.INTERNAL_WEBHOOK_TOKEN ?? '***REMOVED***';
+
+    try {
+      await fetch(`${url}/api/v1/events`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-internal-token': token,
+        },
+        body: JSON.stringify({
+          type: eventType,
+          severity,
+          serviceName: deployment.serviceName,
+          payload: {
+            deploymentId: deployment.id,
+            serviceName:  deployment.serviceName,
+            environment:  deployment.environment,
+            strategy:     deployment.strategy,
+            status:       deployment.status,
+            imageTag:     deployment.imageTag,
+          },
+        }),
+        signal: AbortSignal.timeout(3000),
+      });
+    } catch {
+      // Non-blocking
+    }
+  }
+
   async execute(command: CreateDeploymentCommand): Promise<Deployment> {
     const namespace = `${namespacePrefix(command.environment)}-${command.serviceName}`;
 
@@ -83,7 +118,7 @@ export class CreateDeploymentUseCase {
           await this.canaryStrategy.execute(this.k8sClient, strategyParams);
           break;
       }
-
+      await this.notifyRealtime('deployment:started', record, 'info');
       await this.deploymentRepository.updateStatus(record.id, DeploymentStatus.SUCCEEDED);
 
       await this.auditPublisher.publish(
@@ -97,6 +132,7 @@ export class CreateDeploymentUseCase {
           metadata: { strategy: command.strategy, environment: command.environment },
         }),
       );
+      await this.notifyRealtime('deployment:succeeded', updated, 'info');
 
       const updated = await this.deploymentRepository.findById(record.id);
       if (!updated) {
@@ -119,6 +155,7 @@ export class CreateDeploymentUseCase {
           metadata: { error: message },
         }),
       );
+      await this.notifyRealtime('deployment:failed', record, 'critical');
 
       throw new KubernetesOperationError(message);
     }

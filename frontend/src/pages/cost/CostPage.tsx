@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { costService, auditService, ServiceCost, PlatformTotals, AuditEntry } from '../../services/cost.service';
+import { useRealtime } from '../../context/RealtimeContext';
+import { NotificationCenter } from '../../components/notifications/NotificationCenter';
 
 const STATUS_STYLES: Record<string, { badge: string; icon: string }> = {
   OPTIMAL:    { badge: 'bg-emerald-100 text-emerald-700', icon: '✅' },
@@ -34,7 +36,7 @@ export default function CostPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [auditFilter, setAuditFilter] = useState({ action: '', result: '', schema: '' });
-
+  const { connected, notifications, unreadCount, markAllRead, markRead } = useRealtime();
   useEffect(() => { fetchAll(); }, []);
   useEffect(() => { fetchAudit(); }, [auditFilter]);
 
@@ -85,6 +87,15 @@ export default function CostPage() {
         </Link>
         <span className="text-gray-300">/</span>
         <span className="text-gray-600 font-medium">Cost & Audit</span>
+        <div className="ml-auto">
+          <NotificationCenter
+            connected={connected}
+            notifications={notifications}
+            unreadCount={unreadCount}
+            onMarkAllRead={markAllRead}
+            onMarkRead={markRead}
+          />
+        </div>
       </nav>
 
       <main className="max-w-7xl mx-auto p-8 space-y-8">

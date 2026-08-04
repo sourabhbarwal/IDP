@@ -3,6 +3,8 @@ import { Link } from 'react-router-dom';
 import { useAppSelector } from '../../hooks/redux';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import { useRealtime } from '../../context/RealtimeContext';
+import { NotificationCenter } from '../../components/notifications/NotificationCenter';
 import {
   copilotService,
   streamChat,
@@ -216,6 +218,7 @@ export default function CopilotPage() {
   const [loading, setLoading] = useState(false);
   const [configured, setConfigured] = useState<boolean | null>(null);
   const [statusMessage, setStatusMessage] = useState('');
+  const { connected, notifications, unreadCount, markAllRead, markRead } = useRealtime();
 
   const {
     messages, addMessage, appendToLastMessage, finaliseLastMessage,
@@ -375,6 +378,13 @@ export default function CopilotPage() {
             {configured === true ? 'Groq Streaming' :
              configured === false ? 'Demo Mode' : 'Connecting...'}
           </div>
+          <NotificationCenter
+            connected={connected}
+            notifications={notifications}
+            unreadCount={unreadCount}
+            onMarkAllRead={markAllRead}
+            onMarkRead={markRead}
+          />
           <span className="text-sm text-gray-400 hidden md:block">{user?.email}</span>
         </div>
       </nav>

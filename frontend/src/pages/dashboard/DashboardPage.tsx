@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../../hooks/redux';
 import { logout, getMe } from '../../store/slices/authSlice';
 import { Link } from 'react-router-dom';
+import { useRealtime } from '../../context/RealtimeContext';
+import { NotificationCenter } from '../../components/notifications/NotificationCenter';
 
 const ROLE_COLORS: Record<string, string> = {
   DEVELOPER: 'bg-blue-100 text-blue-700',
@@ -20,11 +22,8 @@ export default function DashboardPage() {
   const permissions = user?.permissions ?? [];
   const createdAt = user?.createdAt ? new Date(user.createdAt).toLocaleDateString() : 'Unknown';
   const status = user?.status ?? 'Unknown';
-
-  // useEffect(() => {
-  //   if (!user) { navigate('/login'); return; }
-  //   dispatch(getMe());
-  // }, [user, navigate, dispatch]);
+  const { connected, notifications, unreadCount, markAllRead, markRead } = useRealtime();
+  
   useEffect(() => {
     if (!user) { navigate('/login'); return; }
     dispatch(getMe());
@@ -52,6 +51,13 @@ export default function DashboardPage() {
           <span className="font-semibold text-gray-900">IDP Platform</span>
         </div>
         <div className="flex items-center gap-4">
+          <NotificationCenter
+            connected={connected}
+            notifications={notifications}
+            unreadCount={unreadCount}
+            onMarkAllRead={markAllRead}
+            onMarkRead={markRead}
+          />
           <span className="text-sm text-gray-600">{user.email}</span>
           <button
             onClick={handleLogout}

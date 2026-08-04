@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAppSelector } from '../../hooks/redux';
 import { monitoringService, loggingService, ServiceMetrics, LogLine } from '../../services/monitoring.service';
+import { useRealtime } from '../../context/RealtimeContext';
+import { NotificationCenter } from '../../components/notifications/NotificationCenter';
 
 const STATUS_COLOR = (errorRate: number) =>
   errorRate > 0.05 ? 'text-red-500' : errorRate > 0.01 ? 'text-yellow-500' : 'text-emerald-500';
@@ -24,6 +26,7 @@ export default function MonitoringPage() {
   const [logsLoading, setLogsLoading] = useState(false);
   const [metricsError, setMetricsError] = useState<string | null>(null);
   const [services, setServices] = useState<string[]>([]);
+  const { connected, notifications, unreadCount, markAllRead, markRead } = useRealtime();
   useEffect(() => {
     if (!user) {
       navigate('/login');
@@ -92,8 +95,17 @@ export default function MonitoringPage() {
         </Link>
         <span className="text-gray-300">/</span>
         <span className="text-gray-600 font-medium">Monitoring</span>
-        <div className="ml-auto text-sm text-gray-400">
-          Auto-refreshes every 30s · {user?.email}
+        <div className="ml-auto flex items-center gap-3">
+          <NotificationCenter
+            connected={connected}
+            notifications={notifications}
+            unreadCount={unreadCount}
+            onMarkAllRead={markAllRead}
+            onMarkRead={markRead}
+          />
+          <span className="text-sm text-gray-400">
+            Auto-refreshes every 30s · {user?.email}
+          </span>
         </div>
       </nav>
 

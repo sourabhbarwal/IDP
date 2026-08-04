@@ -3,6 +3,8 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../../hooks/redux';
 import { fetchServices, deleteService } from '../../store/slices/catalogSlice';
 import { ServiceType } from '../../types/catalog.types';
+import { useRealtime } from '../../context/RealtimeContext';
+import { NotificationCenter } from '../../components/notifications/NotificationCenter';
 
 const TYPE_COLORS: Record<string, string> = {
   NODEJS: 'bg-green-100 text-green-700',
@@ -27,6 +29,7 @@ export default function ServiceListPage() {
   const [search, setSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState('');
   const [page, setPage] = useState(0);
+  const { connected, notifications, unreadCount, markAllRead, markRead } = useRealtime();
 
   useEffect(() => {
     dispatch(fetchServices({ search: search || undefined, type: typeFilter as ServiceType || undefined, page, size: 20 }));
@@ -53,7 +56,16 @@ export default function ServiceListPage() {
           <span className="text-gray-300">/</span>
           <span className="text-gray-600 font-medium">Service Catalog</span>
         </div>
-        <span className="text-sm text-gray-500">{user?.email}</span>
+        <div className="flex items-center gap-3">
+          <NotificationCenter
+            connected={connected}
+            notifications={notifications}
+            unreadCount={unreadCount}
+            onMarkAllRead={markAllRead}
+            onMarkRead={markRead}
+          />
+          <span className="text-sm text-gray-500">{user?.email}</span>
+        </div>
       </nav>
 
       <main className="max-w-6xl mx-auto p-8">

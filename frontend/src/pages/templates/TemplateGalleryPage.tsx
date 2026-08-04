@@ -3,6 +3,8 @@ import { Link } from 'react-router-dom';
 import { useAppSelector } from '../../hooks/redux';
 import { templateService, GenerateTemplateParams } from '../../services/template.service';
 import { TemplateMetadata, TemplateType } from '../../types/template.types';
+import { useRealtime } from '../../context/RealtimeContext';
+import { NotificationCenter } from '../../components/notifications/NotificationCenter';
 
 const LANG_ICONS: Record<string, string> = {
   TypeScript: '🟦',
@@ -31,7 +33,7 @@ export default function TemplateGalleryPage() {
   const [modal, setModal] = useState<GenerateModalState | null>(null);
   const [downloading, setDownloading] = useState(false);
   const [downloadError, setDownloadError] = useState<string | null>(null);
-
+  const { connected, notifications, unreadCount, markAllRead, markRead } = useRealtime();
   useEffect(() => {
     templateService.listAll()
       .then((res) => setTemplates(res.data))
@@ -85,6 +87,15 @@ export default function TemplateGalleryPage() {
         </Link>
         <span className="text-gray-300">/</span>
         <span className="text-gray-600 font-medium">Project Templates</span>
+        <div className="ml-auto">
+          <NotificationCenter
+            connected={connected}
+            notifications={notifications}
+            unreadCount={unreadCount}
+            onMarkAllRead={markAllRead}
+            onMarkRead={markRead}
+          />
+        </div>
       </nav>
 
       <main className="max-w-6xl mx-auto p-8">

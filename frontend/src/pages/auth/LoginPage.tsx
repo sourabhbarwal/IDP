@@ -23,10 +23,17 @@ export default function LoginPage() {
   });
 
   useEffect(() => {
-    if (user) navigate('/dashboard');
+    if (user) {
+      if (Notification.permission === 'default') {
+        Notification.requestPermission().catch(() => {
+          // Permission denied — silent fail, WebSocket notifications still work in-app
+        });
+      }
+      navigate('/dashboard');
+    }
     return () => { dispatch(clearError()); };
   }, [user, navigate, dispatch]);
-
+  
   const onSubmit = (data: FormData) => {
     dispatch(login(data));
   };
