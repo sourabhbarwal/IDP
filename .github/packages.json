@@ -1,0 +1,19 @@
+{
+  "visibility": "public",
+  "packages": [
+    "idp-auth-service",
+    "idp-service-catalog-service",
+    "idp-repository-service",
+    "idp-template-service",
+    "idp-deployment-service",
+    "idp-monitoring-service",
+    "idp-logging-service",
+    "idp-alert-service",
+    "idp-notification-service",
+    "idp-audit-service",
+    "idp-cost-service",
+    "idp-ai-copilot-service",
+    "idp-realtime-service",
+    "idp-frontend"
+  ]
+}

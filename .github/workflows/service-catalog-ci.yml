@@ -130,3 +130,23 @@ jobs:
           severity: 'CRITICAL,HIGH'
           exit-code: '0'
           ignore-unfixed: true
+
+      - name: Log in to GHCR
+        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Push image to GHCR
+        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+        run: |
+          SHORT_SHA=$(echo ${{ github.sha }} | cut -c1-7)
+          docker tag service-catalog-service:${{ github.sha }} \
+            ghcr.io/${{ github.repository_owner }}/idp-service-catalog-service:sha-${SHORT_SHA}
+          docker tag service-catalog-service:${{ github.sha }} \
+            ghcr.io/${{ github.repository_owner }}/idp-service-catalog-service:latest
+          docker push ghcr.io/${{ github.repository_owner }}/idp-service-catalog-service:sha-${SHORT_SHA}
+          docker push ghcr.io/${{ github.repository_owner }}/idp-service-catalog-service:latest
+          echo "✅ Pushed idp-service-catalog-service:sha-${SHORT_SHA} to GHCR"

@@ -1,0 +1,68 @@
+# Production override — uses pre-built images from GHCR
+# Usage: docker compose -f docker-compose.prod.yml up -d
+#
+# Required environment variables:
+#   REGISTRY      = ghcr.io/<owner>
+#   IMAGE_TAG     = sha-<short-sha> or latest or v1.2.3
+
+version: "3.9"
+
+# Inherits networks, volumes from docker-compose.yml
+# Only overrides image source per service
+
+services:
+  auth-service:
+    image: ${REGISTRY}/idp-auth-service:${IMAGE_TAG:-latest}
+    build: !reset null
+
+  service-catalog-service:
+    image: ${REGISTRY}/idp-service-catalog-service:${IMAGE_TAG:-latest}
+    build: !reset null
+
+  repository-service:
+    image: ${REGISTRY}/idp-repository-service:${IMAGE_TAG:-latest}
+    build: !reset null
+
+  template-service:
+    image: ${REGISTRY}/idp-template-service:${IMAGE_TAG:-latest}
+    build: !reset null
+
+  deployment-service:
+    image: ${REGISTRY}/idp-deployment-service:${IMAGE_TAG:-latest}
+    build: !reset null
+
+  monitoring-service:
+    image: ${REGISTRY}/idp-monitoring-service:${IMAGE_TAG:-latest}
+    build: !reset null
+
+  logging-service:
+    image: ${REGISTRY}/idp-logging-service:${IMAGE_TAG:-latest}
+    build: !reset null
+
+  alert-service:
+    image: ${REGISTRY}/idp-alert-service:${IMAGE_TAG:-latest}
+    build: !reset null
+
+  notification-service:
+    image: ${REGISTRY}/idp-notification-service:${IMAGE_TAG:-latest}
+    build: !reset null
+
+  audit-service:
+    image: ${REGISTRY}/idp-audit-service:${IMAGE_TAG:-latest}
+    build: !reset null
+
+  cost-service:
+    image: ${REGISTRY}/idp-cost-service:${IMAGE_TAG:-latest}
+    build: !reset null
+
+  ai-copilot-service:
+    image: ${REGISTRY}/idp-ai-copilot-service:${IMAGE_TAG:-latest}
+    build: !reset null
+
+  realtime-service:
+    image: ${REGISTRY}/idp-realtime-service:${IMAGE_TAG:-latest}
+    build: !reset null
+
+  frontend:
+    image: ${REGISTRY}/idp-frontend:${IMAGE_TAG:-latest}
+    build: !reset null

@@ -51,6 +51,29 @@ open http://localhost:5173
 # password: S3cure!Passw0rd
 ```
 
+## Docker Images (GHCR)
+
+All images are published to GitHub Container Registry on every push to `main`.
+
+```bash
+# Pull all images (replace <owner> with your GitHub username)
+docker pull ghcr.io/<owner>/idp-auth-service:latest
+docker pull ghcr.io/<owner>/idp-service-catalog-service:latest
+# ... etc
+
+# Or use docker-compose.prod.yml for the full stack:
+export REGISTRY=ghcr.io/<owner>
+export IMAGE_TAG=latest
+docker compose -f docker-compose.prod.yml pull
+docker compose -f docker-compose.prod.yml up -d
+```
+
+| Service | Image |
+|---|---|
+| auth-service | `ghcr.io/<owner>/idp-auth-service:latest` |
+| service-catalog-service | `ghcr.io/<owner>/idp-service-catalog-service:latest` |
+| ... | ... |
+
 ## Development
 
 ```bash

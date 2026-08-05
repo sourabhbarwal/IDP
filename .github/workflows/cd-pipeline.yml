@@ -1,0 +1,305 @@
+name: CD Pipeline — Build, Push & Deploy
+
+on:
+  push:
+    branches:
+      - main
+  # Also trigger on manual dispatch (for re-deployments)
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: "Deployment environment"
+        required: true
+        default: "production"
+        type: choice
+        options:
+          - production
+          - staging
+
+concurrency:
+  # Only one deployment at a time per branch
+  group: deploy-${{ github.ref }}
+  cancel-in-progress: false  # Never cancel deployments mid-flight
+
+env:
+  REGISTRY: ghcr.io
+  OWNER: ${{ github.repository_owner }}
+
+jobs:
+  # ── 1. Run all unit tests first ─────────────────────────────────────────────
+  test:
+    name: Test All Services
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: backend/package-lock.json
+      - working-directory: backend
+        run: npm ci
+      - working-directory: backend
+        run: npm run build --workspace=common
+      - name: Test all workspaces
+        working-directory: backend
+        run: |
+          npm run test:cov --workspace=common
+          npm run test:cov --workspace=auth-service
+          npm run test:cov --workspace=service-catalog-service
+          npm run test:cov --workspace=repository-service
+          npm run test:cov --workspace=template-service
+          npm run test:cov --workspace=deployment-service
+          npm run test:cov --workspace=monitoring-service
+          npm run test:cov --workspace=logging-service
+          npm run test:cov --workspace=alert-service
+          npm run test:cov --workspace=notification-service
+          npm run test:cov --workspace=audit-service
+          npm run test:cov --workspace=cost-service
+          npm run test:cov --workspace=ai-copilot-service
+          npm run test:cov --workspace=realtime-service
+
+  # ── 2. Build and push all images in parallel ─────────────────────────────────
+  build-images:
+    name: Build & Push Images
+    needs: test
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+      security-events: write
+
+    strategy:
+      fail-fast: false  # Continue building other images even if one fails
+      matrix:
+        include:
+          - service: auth-service
+            dockerfile: backend/auth-service/Dockerfile
+            image: idp-auth-service
+          - service: service-catalog-service
+            dockerfile: backend/service-catalog-service/Dockerfile
+            image: idp-service-catalog-service
+          - service: repository-service
+            dockerfile: backend/repository-service/Dockerfile
+            image: idp-repository-service
+          - service: template-service
+            dockerfile: backend/template-service/Dockerfile
+            image: idp-template-service
+          - service: deployment-service
+            dockerfile: backend/deployment-service/Dockerfile
+            image: idp-deployment-service
+          - service: monitoring-service
+            dockerfile: backend/monitoring-service/Dockerfile
+            image: idp-monitoring-service
+          - service: logging-service
+            dockerfile: backend/logging-service/Dockerfile
+            image: idp-logging-service
+          - service: alert-service
+            dockerfile: backend/alert-service/Dockerfile
+            image: idp-alert-service
+          - service: notification-service
+            dockerfile: backend/notification-service/Dockerfile
+            image: idp-notification-service
+          - service: audit-service
+            dockerfile: backend/audit-service/Dockerfile
+            image: idp-audit-service
+          - service: cost-service
+            dockerfile: backend/cost-service/Dockerfile
+            image: idp-cost-service
+          - service: ai-copilot-service
+            dockerfile: backend/ai-copilot-service/Dockerfile
+            image: idp-ai-copilot-service
+          - service: realtime-service
+            dockerfile: backend/realtime-service/Dockerfile
+            image: idp-realtime-service
+          - service: frontend
+            dockerfile: frontend/Dockerfile
+            image: idp-frontend
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract image metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/${{ env.OWNER }}/${{ matrix.image }}
+          tags: |
+            type=sha,prefix=sha-,format=short
+            type=raw,value=latest,enable={{is_default_branch}}
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+          labels: |
+            org.opencontainers.image.title=IDP Platform - ${{ matrix.service }}
+            org.opencontainers.image.vendor=IDP Platform
+            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+            org.opencontainers.image.revision=${{ github.sha }}
+
+      - name: Build and push ${{ matrix.service }}
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ${{ matrix.dockerfile }}
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          build-args: |
+            BUILD_REVISION=${{ github.sha }}
+            BUILD_DATE=${{ github.event.repository.updated_at }}
+          cache-from: type=gha,scope=${{ matrix.service }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.service }}
+          platforms: linux/amd64
+
+      - name: Scan ${{ matrix.service }} with Trivy
+        uses: aquasecurity/trivy-action@v0.24.0
+        with:
+          image-ref: ghcr.io/${{ env.OWNER }}/${{ matrix.image }}:latest
+          format: sarif
+          output: trivy-${{ matrix.service }}.sarif
+          severity: CRITICAL,HIGH
+          exit-code: '0'
+          ignore-unfixed: true
+
+  # ── 3. Deploy via SSH ─────────────────────────────────────────────────────────
+  deploy:
+    name: Deploy to ${{ inputs.environment || 'production' }}
+    needs: build-images
+    runs-on: ubuntu-latest
+    environment:
+      name: ${{ inputs.environment || 'production' }}
+      url: ${{ vars.DEPLOY_URL }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Create deployment record
+        run: |
+          echo "Deploying SHA: ${{ github.sha }}"
+          echo "Image tag: sha-$(echo ${{ github.sha }} | cut -c1-7)"
+          echo "Environment: ${{ inputs.environment || 'production' }}"
+
+      - name: Deploy to server via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          port: 22
+          script: |
+            set -e
+
+            cd ${{ secrets.DEPLOY_PATH }}
+
+            echo "=== Pulling latest images from GHCR ==="
+            # Set the image tag to the current SHA
+            export IMAGE_TAG=sha-$(echo ${{ github.sha }} | cut -c1-7)
+            export REGISTRY=ghcr.io/${{ github.repository_owner }}
+
+            # Pull all new images
+            docker compose -f docker-compose.prod.yml pull
+
+            echo "=== Performing rolling restart ==="
+            # Restart services one by one to maintain availability
+            # Infrastructure first
+            docker compose -f docker-compose.prod.yml up -d --no-build postgres pgbouncer redis nginx
+
+            # Then backend services
+            docker compose -f docker-compose.prod.yml up -d --no-build \
+              auth-service \
+              service-catalog-service \
+              repository-service \
+              template-service \
+              deployment-service \
+              monitoring-service \
+              logging-service \
+              alert-service \
+              notification-service \
+              audit-service \
+              cost-service \
+              ai-copilot-service \
+              realtime-service
+
+            # Frontend last
+            docker compose -f docker-compose.prod.yml up -d --no-build frontend
+
+            echo "=== Verifying deployment ==="
+            sleep 15
+            docker compose -f docker-compose.prod.yml ps
+
+            # Health check all services
+            for port in 3001 3002 3003 3004 3005 3006 3007 3008 3009 3010 3011 3012 3013; do
+              if curl -sf "http://localhost:${port}/health" > /dev/null 2>&1; then
+                echo "✅ Port ${port} healthy"
+              else
+                echo "❌ Port ${port} UNHEALTHY"
+                exit 1
+              fi
+            done
+
+            echo "=== Deployment complete ==="
+
+            # Clean up old images (keep last 3)
+            docker image prune -f --filter "until=168h"
+
+      - name: Notify deployment success
+        if: success()
+        run: |
+          echo "✅ Deployment successful"
+          echo "SHA: ${{ github.sha }}"
+          echo "Environment: ${{ inputs.environment || 'production' }}"
+
+      - name: Notify deployment failure
+        if: failure()
+        run: |
+          echo "❌ Deployment failed"
+          echo "SHA: ${{ github.sha }}"
+          # In a real setup: send Slack notification here
+
+  # ── 4. Post-deployment smoke test ─────────────────────────────────────────────
+  smoke-test:
+    name: Smoke Test (post-deploy)
+    needs: deploy
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Run smoke tests against deployed environment
+        run: |
+          DEPLOY_URL="${{ vars.DEPLOY_URL }}"
+
+          # Verify health endpoint is reachable
+          echo "Testing ${DEPLOY_URL}/health..."
+          for i in $(seq 1 5); do
+            if curl -sf "${DEPLOY_URL}/health" > /dev/null; then
+              echo "✅ Platform is healthy after deployment"
+              break
+            fi
+            echo "Attempt ${i}/5 failed — waiting 10s..."
+            sleep 10
+          done
+
+          # Verify auth endpoint works
+          echo "Testing auth endpoint..."
+          RESPONSE=$(curl -sf -o /dev/null -w "%{http_code}" \
+            -X POST "${DEPLOY_URL}/api/v1/auth/login" \
+            -H "Content-Type: application/json" \
+            -d '{"email":"healthcheck@idp.local","password":"invalid"}')
+
+          # 401 is expected (wrong credentials) — proves the service is up
+          if [ "$RESPONSE" = "401" ]; then
+            echo "✅ Auth service responding correctly"
+          else
+            echo "❌ Auth service returned unexpected status: ${RESPONSE}"
+            exit 1
+          fi
