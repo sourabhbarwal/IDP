@@ -83,7 +83,10 @@ jobs:
           context: .
           file: ${{ inputs.dockerfile }}
           push: ${{ inputs.push }}
-          tags: ${{ steps.meta.outputs.tags }}
+          load: true
+          tags: |
+            ${{ steps.meta.outputs.tags }}
+            local-scan/${{ inputs.service }}:latest
           labels: ${{ steps.meta.outputs.labels }}
           build-args: |
             BUILD_REVISION=${{ github.sha }}
@@ -97,7 +100,7 @@ jobs:
       - name: Scan image with Trivy
         uses: aquasecurity/trivy-action@v0.24.0
         with:
-          image-ref: ghcr.io/${{ github.repository_owner }}/${{ inputs.image_name }}:latest
+          image-ref: local-scan/${{ inputs.service }}:latest
           format: sarif
           output: trivy-${{ inputs.service }}.sarif
           severity: CRITICAL,HIGH
