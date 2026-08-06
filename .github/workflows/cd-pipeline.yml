@@ -126,7 +126,7 @@ jobs:
             image: idp-realtime-service
             context: .
           - service: frontend
-            dockerfile: Dockerfile
+            dockerfile: frontend/Dockerfile
             image: idp-frontend
             context: frontend
 
