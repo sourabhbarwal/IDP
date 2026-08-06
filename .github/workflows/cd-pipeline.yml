@@ -191,6 +191,7 @@ jobs:
     name: Deploy to ${{ inputs.environment || 'production' }}
     needs: build-images
     runs-on: ubuntu-latest
+    if: ${{ vars.DEPLOY_ENABLED == 'true' }}
     environment:
       name: ${{ inputs.environment || 'production' }}
       url: ${{ vars.DEPLOY_URL }}
@@ -287,6 +288,7 @@ jobs:
     name: Smoke Test (post-deploy)
     needs: deploy
     runs-on: ubuntu-latest
+    if: ${{ vars.DEPLOY_ENABLED == 'true' }}
 
     steps:
       - name: Run smoke tests against deployed environment
