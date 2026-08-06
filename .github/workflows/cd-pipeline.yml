@@ -153,9 +153,7 @@ jobs:
           file: ${{ matrix.dockerfile }}
           push: true
           load: true
-          tags: |
-            ${{ steps.meta.outputs.tags }}
-            local-scan/${{ matrix.service }}:latest
+          tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           build-args: |
             BUILD_REVISION=${{ github.sha }}
@@ -163,11 +161,11 @@ jobs:
           cache-from: type=gha,scope=${{ matrix.service }}
           cache-to: type=gha,mode=max,scope=${{ matrix.service }}
           platforms: linux/amd64
-          
+
       - name: Scan ${{ matrix.service }} with Trivy
         uses: aquasecurity/trivy-action@v0.24.0
         with:
-          image-ref: local-scan/${{ matrix.service }}:latest
+          image-ref: ghcr.io/${{ env.OWNER }}/${{ matrix.image }}:latest
           format: sarif
           output: trivy-${{ matrix.service }}.sarif
           severity: CRITICAL,HIGH
