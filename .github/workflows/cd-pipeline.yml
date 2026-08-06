@@ -76,45 +76,59 @@ jobs:
           - service: auth-service
             dockerfile: backend/auth-service/Dockerfile
             image: idp-auth-service
+            context: .
           - service: service-catalog-service
             dockerfile: backend/service-catalog-service/Dockerfile
             image: idp-service-catalog-service
+            context: .
           - service: repository-service
             dockerfile: backend/repository-service/Dockerfile
             image: idp-repository-service
+            context: .
           - service: template-service
             dockerfile: backend/template-service/Dockerfile
             image: idp-template-service
+            context: .
           - service: deployment-service
             dockerfile: backend/deployment-service/Dockerfile
             image: idp-deployment-service
+            context: .
           - service: monitoring-service
             dockerfile: backend/monitoring-service/Dockerfile
             image: idp-monitoring-service
+            context: .
           - service: logging-service
             dockerfile: backend/logging-service/Dockerfile
             image: idp-logging-service
+            context: .
           - service: alert-service
             dockerfile: backend/alert-service/Dockerfile
             image: idp-alert-service
+            context: .
           - service: notification-service
             dockerfile: backend/notification-service/Dockerfile
             image: idp-notification-service
+            context: .
           - service: audit-service
             dockerfile: backend/audit-service/Dockerfile
             image: idp-audit-service
+            context: .
           - service: cost-service
             dockerfile: backend/cost-service/Dockerfile
             image: idp-cost-service
+            context: .
           - service: ai-copilot-service
             dockerfile: backend/ai-copilot-service/Dockerfile
             image: idp-ai-copilot-service
+            context: .
           - service: realtime-service
             dockerfile: backend/realtime-service/Dockerfile
             image: idp-realtime-service
+            context: .
           - service: frontend
-            dockerfile: frontend/Dockerfile
+            dockerfile: Dockerfile
             image: idp-frontend
+            context: frontend
 
     steps:
       - name: Checkout
@@ -149,7 +163,7 @@ jobs:
       - name: Build and push ${{ matrix.service }}
         uses: docker/build-push-action@v6
         with:
-          context: .
+          context: ${{ matrix.context }}
           file: ${{ matrix.dockerfile }}
           push: true
           load: true
