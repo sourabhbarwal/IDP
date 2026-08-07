@@ -11,7 +11,7 @@ import { CopilotService } from '../../application/copilot.service';
 import { GroqClientService } from '../../application/groq-client.service';
 import { ChatRequestDto } from './dto/chat-request.dto';
 import { ChatResponseDto } from './dto/chat-response.dto';
-import { ApiException } from '@idp/common';
+import { ApiException, CircuitBreakerRegistry } from '@idp/common';
 
 @ApiTags('copilot')
 @ApiBearerAuth()
@@ -21,8 +21,8 @@ export class CopilotController {
   constructor(
     private readonly copilot: CopilotService,
     private readonly groq: GroqClientService,
+    private readonly cbRegistry: CircuitBreakerRegistry,
   ) {}
-
   // ── Non-streaming (backward compat) ───────────────────────────────────────
 
   @Post('chat')
@@ -47,29 +47,6 @@ export class CopilotController {
     }
   }
 
-  // ── Streaming via SSE ──────────────────────────────────────────────────────
-
-  /**
-   * POST /api/v1/copilot/chat/stream
-   *
-   * Returns a Server-Sent Events stream. Each event is a JSON object:
-   *
-   * Context event (first):
-   *   data: {"type":"context","contextUsed":["alert-service","monitoring-service"]}
-   *
-   * Delta events (one per token chunk):
-   *   data: {"type":"delta","content":"Hello"}
-   *   data: {"type":"delta","content":" world"}
-   *
-   * Done event (final):
-   *   data: {"type":"done","tokensUsed":128,"model":"llama3-70b-8192","durationMs":2341}
-   *
-   * Error event:
-   *   data: {"type":"error","error":"Groq API error 429: rate limit exceeded"}
-   *
-   * Note: We use @Sse() with a custom POST route. NestJS @Sse() is normally
-   * GET-only, so we handle the SSE headers manually on a POST endpoint.
-   */
   @Post('chat/stream')
   @ApiOperation({ summary: 'Send a message — returns SSE stream of token chunks' })
   async chatStream(
@@ -150,6 +127,16 @@ export class CopilotController {
       message: this.groq.isConfigured()
         ? 'Groq API key configured. Streaming AI Copilot ready.'
         : 'GROQ_API_KEY not set. Running in demo mode. Get a free key at console.groq.com',
+    };
+  }
+
+  @Get('resilience')
+  @SkipThrottle()
+  @ApiOperation({ summary: 'Circuit breaker states for all downstream dependencies' })
+  getResilienceStatus(): Record<string, unknown> {
+    return {
+      circuitBreakers: this.cbRegistry.getAllMetrics(),
+      timestamp: new Date().toISOString(),
     };
   }
 }

@@ -11,6 +11,8 @@ import { GroqClientService } from './application/groq-client.service';
 import { PlatformContextService } from './application/platform-context.service';
 import { CopilotController } from './infrastructure/web/copilot.controller';
 import { HealthController } from './health/health.controller';
+import { CircuitBreakerRegistry } from '@idp/common';
+
 
 @Module({
   imports: [
@@ -29,6 +31,7 @@ import { HealthController } from './health/health.controller';
     CopilotService,
     GroqClientService,
     PlatformContextService,
+    CircuitBreakerRegistry,
     { provide: APP_GUARD, useClass: ThrottlerGuard },
     { provide: APP_FILTER, useClass: GlobalExceptionFilter },
   ],

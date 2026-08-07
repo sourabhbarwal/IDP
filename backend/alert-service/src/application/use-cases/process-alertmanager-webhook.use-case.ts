@@ -6,6 +6,7 @@ import {
   ALERT_EVENT_REPOSITORY,
   AlertEventRepository,
 } from '../../domain/repositories/alert-event.repository.port';
+import { resilientFetch, CircuitBreaker, CircuitOpenError } from '@idp/common';
 
 export interface AlertManagerAlert {
   status: 'firing' | 'resolved';
@@ -32,7 +33,11 @@ export class ProcessAlertManagerWebhookUseCase {
   private readonly logger = new Logger(ProcessAlertManagerWebhookUseCase.name);
   private readonly realtimeServiceUrl: string;
   private readonly internalToken: string;
-
+  private readonly cbRealtime = new CircuitBreaker({
+    name: 'realtime-service',
+    failureThreshold: 5,
+    recoveryTimeMs: 60_000, // longer recovery — realtime is non-critical
+  });
   constructor(
     @Inject(ALERT_EVENT_REPOSITORY) private readonly repo: AlertEventRepository,
     private readonly config: ConfigService,
@@ -90,7 +95,9 @@ export class ProcessAlertManagerWebhookUseCase {
       : 'alert:resolved';
 
     try {
-      await fetch(`${this.realtimeServiceUrl}/api/v1/events`, {
+    const res = await resilientFetch(
+      `${this.realtimeServiceUrl}/api/v1/events`,
+      {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -107,10 +114,24 @@ export class ProcessAlertManagerWebhookUseCase {
             summary: annotations['summary'] ?? alertName,
           },
         }),
-        signal: AbortSignal.timeout(3000),
-      });
+      },
+      {
+        timeoutMs:   3_000,
+        maxAttempts: 2,     // Only 2 attempts — realtime is best-effort
+        circuit:     this.cbRealtime,
+      },
+    );
+
+    if (!res.ok) {
+      this.logger.warn(`Realtime service returned ${res.status} for ${eventType}`);
+      }
     } catch (err) {
-      this.logger.warn(`Could not notify realtime-service: ${err}`);
+      if (err instanceof CircuitOpenError) {
+        this.logger.warn('Realtime service circuit is OPEN — skipping push notification');
+      } else {
+        this.logger.warn(`Could not notify realtime-service: ${err}`);
+      }
+      // Non-blocking — alert processing continues regardless
     }
   }
 }

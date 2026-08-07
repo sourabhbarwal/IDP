@@ -8,3 +8,7 @@ export * from './metrics/metrics.middleware';
 export { applySecurity } from './security/apply-security';
 export { THROTTLE_CONFIG_GLOBAL, THROTTLE_CONFIG_AUTH } from './security/throttler.config';
 export { initTracing, shutdownTracing } from './telemetry/tracing';
+export { CircuitBreaker, CircuitOpenError, CircuitState } from './resilience/circuit-breaker';
+export { withRetry, RetryableError } from './resilience/retry';
+export { resilientFetch } from './resilience/resilient-fetch';
+export { CircuitBreakerRegistry } from './resilience/circuit-breaker-registry';

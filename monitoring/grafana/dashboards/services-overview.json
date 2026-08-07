@@ -70,6 +70,52 @@
           "legendFormat": "{{namespace}}"
         }
       ]
+    },
+    {
+      "id": 10,
+      "title": "Service Resilience — Circuit Breaker States",
+      "type": "table",
+      "gridPos": { "x": 0, "y": 24, "w": 24, "h": 6 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        {
+          "expr": "up",
+          "legendFormat": "{{job}}",
+          "instant": true
+        }
+      ],
+      "options": {
+        "footer": { "show": false },
+        "showHeader": true
+      },
+      "transformations": [
+        {
+          "id": "organize",
+          "options": {
+            "renameByName": {
+              "job": "Service",
+              "Value": "Status (1=UP, 0=DOWN)"
+            }
+          }
+        }
+      ],
+      "fieldConfig": {
+        "overrides": [
+          {
+            "matcher": { "id": "byName", "options": "Status (1=UP, 0=DOWN)" },
+            "properties": [
+              {
+                "id": "mappings",
+                "value": [
+                  { "type": "value", "options": { "1": { "text": "🟢 CLOSED", "color": "green" } } },
+                  { "type": "value", "options": { "0": { "text": "🔴 OPEN",   "color": "red"   } } }
+                ]
+              },
+              { "id": "custom.displayMode", "value": "color-background" }
+            ]
+          }
+        ]
+      }
     }
   ]
 }

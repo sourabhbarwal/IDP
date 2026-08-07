@@ -13,6 +13,7 @@ import { KUBERNETES_CLIENT, KubernetesClient } from '../ports/kubernetes-client.
 import { RollingStrategy } from '../strategies/rolling-strategy';
 import { BlueGreenStrategy } from '../strategies/blue-green-strategy';
 import { CanaryStrategy } from '../strategies/canary-strategy';
+import { resilientFetch, CircuitBreaker, CircuitOpenError } from '@idp/common';
 
 export interface CreateDeploymentCommand {
   serviceId: string;
@@ -30,7 +31,11 @@ export interface CreateDeploymentCommand {
 @Injectable()
 export class CreateDeploymentUseCase {
   private readonly logger = new Logger(CreateDeploymentUseCase.name);
-
+  private readonly cbRealtime = new CircuitBreaker({
+    name: 'realtime-service-from-deploy',
+    failureThreshold: 3,
+    recoveryTimeMs: 60_000,
+  });
   constructor(
     @Inject(DEPLOYMENT_REPOSITORY) private readonly deploymentRepository: DeploymentRepository,
     @Inject(KUBERNETES_CLIENT) private readonly k8sClient: KubernetesClient,
@@ -45,33 +50,38 @@ export class CreateDeploymentUseCase {
     deployment: Deployment,
     severity: 'info' | 'warning' | 'critical' = 'info',
   ): Promise<void> {
-    const url = process.env.REALTIME_SERVICE_URL ?? 'http://realtime-service:3013';
+    const url   = process.env.REALTIME_SERVICE_URL   ?? 'http://realtime-service:3013';
     const token = process.env.INTERNAL_WEBHOOK_TOKEN ?? '***REMOVED***';
 
     try {
-      await fetch(`${url}/api/v1/events`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-internal-token': token,
-        },
-        body: JSON.stringify({
-          type: eventType,
-          severity,
-          serviceName: deployment.serviceName,
-          payload: {
-            deploymentId: deployment.id,
-            serviceName:  deployment.serviceName,
-            environment:  deployment.environment,
-            strategy:     deployment.strategy,
-            status:       deployment.status,
-            imageTag:     deployment.imageTag,
+      await resilientFetch(
+        `${url}/api/v1/events`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type':    'application/json',
+            'x-internal-token': token,
           },
-        }),
-        signal: AbortSignal.timeout(3000),
-      });
-    } catch {
-      // Non-blocking
+          body: JSON.stringify({
+            type: eventType,
+            severity,
+            serviceName: deployment.serviceName,
+            payload: {
+              deploymentId: deployment.id,
+              serviceName:  deployment.serviceName,
+              environment:  deployment.environment,
+              strategy:     deployment.strategy,
+              status:       deployment.status,
+              imageTag:     deployment.imageTag,
+            },
+          }),
+        },
+        { timeoutMs: 3_000, maxAttempts: 2, circuit: this.cbRealtime },
+      );
+    } catch (err) {
+      if (err instanceof CircuitOpenError) {
+        this.logger.warn('Realtime service circuit OPEN — deployment notification skipped');
+      }
     }
   }
 

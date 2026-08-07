@@ -1,5 +1,6 @@
 import { PlatformContextService } from './platform-context.service';
 import { ConfigService } from '@nestjs/config';
+import { CircuitBreakerRegistry } from '@idp/common';
 
 const mockConfig = {
   get: jest.fn((key: string, def?: string) => {
@@ -17,7 +18,9 @@ describe('PlatformContextService', () => {
   const originalFetch = global.fetch;
 
   beforeEach(() => {
-    service = new PlatformContextService(mockConfig);
+    const cbRegistry = new CircuitBreakerRegistry();
+    service = new PlatformContextService(mockConfig, cbRegistry);
+    service.onModuleInit(); // circuit breakers are created here, not in the constructor
   });
 
   afterEach(() => {

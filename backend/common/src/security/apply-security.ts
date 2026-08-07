@@ -1,5 +1,6 @@
 import { INestApplication } from '@nestjs/common';
 import helmet from 'helmet';
+import express from 'express';
 export function applySecurity(app: INestApplication): void {
   app.use(
     helmet({
@@ -26,6 +27,6 @@ export function applySecurity(app: INestApplication): void {
     }),
   );
 
-  app.use(require('express').json({ limit: '1mb' }));
-  app.use(require('express').urlencoded({ extended: false, limit: '1mb' }));
+  app.use(express.json({ limit: '1mb' }));
+  app.use(express.urlencoded({ extended: false, limit: '1mb' }));
 }
