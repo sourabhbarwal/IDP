@@ -861,3 +861,40 @@ services:
       interval: 30s
       timeout: 5s
       retries: 3
+
+  dora-service:
+    build:
+      context: .
+      dockerfile: backend/dora-service/Dockerfile
+      args:
+        BUILD_REVISION: local
+    container_name: idp-dora-service
+    restart: unless-stopped
+    networks: [idp-network]
+    depends_on:
+      pgbouncer:
+        condition: service_healthy
+    ports:
+      - "3014:3014"
+    environment:
+      NODE_ENV: development
+      PORT: 3014
+      DB_HOST: pgbouncer
+      DB_PORT: 6432
+      DB_USERNAME: idp
+      DB_PASSWORD: ***REMOVED***
+      DB_NAME: idp
+      JWT_SECRET: ***REMOVED***
+      JWT_ISSUER: idp-platform
+      ALLOWED_ORIGINS: http://localhost:5173,http://localhost
+    deploy:
+      resources:
+        limits:
+          cpus: '0.25'
+          memory: 128M
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:3014/health || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s

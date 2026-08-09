@@ -129,6 +129,9 @@ jobs:
             dockerfile: frontend/Dockerfile
             image: idp-frontend
             context: frontend
+          - service: dora-service
+            dockerfile: backend/dora-service/Dockerfile
+            image: idp-dora-service
 
     steps:
       - name: Checkout

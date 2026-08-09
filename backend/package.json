@@ -17,7 +17,8 @@
     "audit-service",
     "cost-service",
     "ai-copilot-service",
-    "realtime-service"
+    "realtime-service",
+    "dora-service"
   ],
   "engines": { "node": ">=20.0.0" },
   "scripts": {

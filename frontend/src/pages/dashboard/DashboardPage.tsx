@@ -173,6 +173,14 @@ export default function DashboardPage() {
             <p className="text-sm text-gray-500 mt-1">Chat, incident investigation, cost advice</p>
             <p className="text-xs text-primary-600 mt-3 font-medium">Open →</p>
           </Link>
+
+          <Link to="/dora"
+            className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 hover:border-primary-300 hover:shadow-md transition-all group">
+            <div className="text-3xl mb-3">📊</div>
+            <h3 className="font-semibold text-gray-800 group-hover:text-primary-600">DORA Metrics</h3>
+            <p className="text-sm text-gray-500 mt-1">Deployment frequency, lead time, CFR, MTTR</p>
+            <p className="text-xs text-primary-600 mt-3 font-medium">Open →</p>
+          </Link>
         </div>
       </main>
     </div>
