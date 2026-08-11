@@ -45,4 +45,20 @@ export const catalogService = {
 
   remove: (id: string) =>
     apiClient.delete(`${BASE}/services/${id}`),
+
+  getServiceHealth: (id: string) =>
+    apiClient.get(`${BASE}/services/${id}/health`),
+
+  getDependencyGraph: (focusId?: string) =>
+    apiClient.get(`${BASE}/services/graph${focusId ? `?focus=${focusId}` : ''}`),
+
+  addDependency: (serviceId: string, payload: {
+    dependencyId:   string;
+    dependencyType: 'HARD' | 'SOFT' | 'ASYNC';
+    description?:  string;
+  }) =>
+    apiClient.post(`${BASE}/services/${serviceId}/dependencies`, payload),
+
+  removeDependency: (serviceId: string, dependencyId: string) =>
+    apiClient.delete(`${BASE}/services/${serviceId}/dependencies/${dependencyId}`),
 };

@@ -27,13 +27,18 @@ import { MetricsModule, MetricsMiddleware } from '@idp/common';
 import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
 import { THROTTLE_CONFIG_GLOBAL } from '@idp/common';
 import { APP_GUARD } from '@nestjs/core';
+import { AddDependencyUseCase } from './application/use-cases/add-dependency.use-case';
+import { GetServiceHealthUseCase } from './application/use-cases/get-service-health.use-case';
+import { GetDependencyGraphUseCase } from './application/use-cases/get-dependency-graph.use-case';
+import { CircuitBreakerRegistry } from '@idp/common';
+import { ServiceDependencyOrmEntity } from './infrastructure/persistence/orm-entities/service-dependency.orm-entity';
 
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true, load: [configuration], envFilePath: ['.env'] }),
     ThrottlerModule.forRoot(THROTTLE_CONFIG_GLOBAL),
     TypeOrmModule.forRootAsync({ useFactory: typeOrmOptionsFactory, inject: [ConfigService] }),
-    TypeOrmModule.forFeature([ServiceOrmEntity, ServiceVersionOrmEntity, AuditLogOrmEntity]),
+    TypeOrmModule.forFeature([ServiceOrmEntity, ServiceVersionOrmEntity, ServiceDependencyOrmEntity, AuditLogOrmEntity]),
     PassportModule.register({ defaultStrategy: 'jwt' }),
     JwtModule.registerAsync({
       useFactory: (config: ConfigService) => ({ secret: config.get<string>('JWT_SECRET') }),
@@ -53,6 +58,10 @@ import { APP_GUARD } from '@nestjs/core';
     ListServicesUseCase,
     UpdateServiceUseCase,
     DeleteServiceUseCase,
+    CircuitBreakerRegistry, 
+    AddDependencyUseCase,
+    GetServiceHealthUseCase, 
+    GetDependencyGraphUseCase
   ],
 })
 export class ServiceCatalogModule implements NestModule {

@@ -414,6 +414,9 @@ services:
       JWT_SECRET: ***REMOVED***
       JWT_ISSUER: idp-platform
       JWT_ALGORITHM: HS256
+      ALERT_SERVICE_URL:      http://alert-service:3008
+      DEPLOYMENT_SERVICE_URL: http://deployment-service:3005
+      REPOSITORY_SERVICE_URL: http://repository-service:3003
       ALLOWED_ORIGINS: http://localhost:5173,http://localhost
       OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4317
     deploy:

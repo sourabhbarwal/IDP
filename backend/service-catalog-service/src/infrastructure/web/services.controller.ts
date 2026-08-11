@@ -23,6 +23,14 @@ import { CreateServiceRequestDto } from './dto/create-service-request.dto';
 import { UpdateServiceRequestDto } from './dto/update-service-request.dto';
 import { ServiceResponseDto } from './dto/service-response.dto';
 import { ListServicesQueryDto } from './dto/list-services-query.dto';
+import { AddDependencyUseCase } from '../../application/use-cases/add-dependency.use-case';
+import { GetServiceHealthUseCase } from '../../application/use-cases/get-service-health.use-case';
+import { GetDependencyGraphUseCase } from '../../application/use-cases/get-dependency-graph.use-case';
+import { AddDependencyRequestDto } from './dto/add-dependency-request.dto';
+import { InjectDataSource } from '@nestjs/typeorm';
+import { DataSource } from 'typeorm';
+import { SkipThrottle } from '@nestjs/throttler';
+import { ApiQuery } from '@nestjs/swagger';
 
 function clientIp(req: Request): string | null {
   return (req.headers['x-forwarded-for'] as string)?.split(',')[0]?.trim() ?? req.ip ?? null;
@@ -39,6 +47,10 @@ export class ServicesController {
     private readonly listServices: ListServicesUseCase,
     private readonly updateService: UpdateServiceUseCase,
     private readonly deleteService: DeleteServiceUseCase,
+    private readonly addDependencyUseCase: AddDependencyUseCase,
+    private readonly getServiceHealthUseCase: GetServiceHealthUseCase,
+    private readonly getDependencyGraphUseCase: GetDependencyGraphUseCase,
+    @InjectDataSource() private readonly db: DataSource,
   ) {}
 
   @Post()
@@ -68,6 +80,61 @@ export class ServicesController {
       if (err instanceof ServiceNameConflictError) throw ApiException.conflict(err.message);
       throw err;
     }
+  }
+
+  @Post(':id/dependencies')
+  @HttpCode(HttpStatus.CREATED)
+  @RequirePermissions('service:update')
+  @ApiOperation({ summary: 'Declare a dependency on another service' })
+  async addDependency(
+    @Param('id') serviceId: string,
+    @Body() body: AddDependencyRequestDto,
+    @Req() req: Request,
+    @CurrentUser() user: AuthenticatedUser,
+  ) {
+    return this.addDependencyUseCase.execute({
+      serviceId,
+      dependencyId:   body.dependencyId,
+      dependencyType: body.dependencyType,
+      description:    body.description ?? null,
+      actorId:        user.userId,
+      ipAddress:      clientIp(req),
+    });
+  }
+
+  @Delete(':id/dependencies/:dependencyId')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @RequirePermissions('service:update')
+  @ApiOperation({ summary: 'Remove a declared dependency' })
+  async removeDependency(
+    @Param('id') serviceId: string,
+    @Param('dependencyId') dependencyId: string,
+  ) {
+    await this.db.query(
+      `DELETE FROM catalog.service_dependencies
+       WHERE service_id = $1 AND dependency_id = $2`,
+      [serviceId, dependencyId],
+    );
+  }
+
+  @Get(':id/health')
+  @RequirePermissions('service:read')
+  @ApiOperation({ summary: 'Get composite health score, onboarding checklist for a service' })
+  async getServiceHealth(
+    @Param('id') id: string,
+    @Req() req: Request,
+  ) {
+    const token = (req.headers['authorization'] as string)?.replace('Bearer ', '') ?? '';
+    return this.getServiceHealthUseCase.execute(id, token);
+  }
+
+  @Get('graph')
+  @SkipThrottle()
+  @RequirePermissions('service:read')
+  @ApiOperation({ summary: 'Get full dependency graph (all services + edges)' })
+  @ApiQuery({ name: 'focus', required: false, description: 'Service ID to centre the graph on' })
+  async getServiceDependencyGraph(@Query('focus') focus?: string) {
+    return this.getDependencyGraphUseCase.execute(focus);
   }
 
   @Get()
