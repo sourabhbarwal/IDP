@@ -1,6 +1,6 @@
 import {
   Body, Controller, Get, HttpCode, HttpStatus,
-  Param, Post, Query, Req, UseGuards,
+  Param, ParseUUIDPipe, Post, Query, Req, UseGuards,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiQuery, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { Request } from 'express';
@@ -82,7 +82,9 @@ export class RepositoriesController {
   @RequirePermissions('service:read')
   @ApiOperation({ summary: 'Get repository by service ID' })
   @ApiResponse({ status: 200, type: RepositoryResponseDto })
-  async getByServiceId(@Param('serviceId') serviceId: string): Promise<RepositoryResponseDto> {
+  async getByServiceId(
+    @Param('serviceId', new ParseUUIDPipe()) serviceId: string,
+  ): Promise<RepositoryResponseDto> {
     try {
       const repo = await this.getRepository.executeByServiceId(serviceId);
       return RepositoryResponseDto.fromDomain(repo);
@@ -96,7 +98,9 @@ export class RepositoriesController {
   @RequirePermissions('service:read')
   @ApiOperation({ summary: 'Get repository by ID' })
   @ApiResponse({ status: 200, type: RepositoryResponseDto })
-  async getById(@Param('id') id: string): Promise<RepositoryResponseDto> {
+  async getById(
+    @Param('id', new ParseUUIDPipe()) id: string,
+  ): Promise<RepositoryResponseDto> {
     try {
       const repo = await this.getRepository.executeById(id);
       return RepositoryResponseDto.fromDomain(repo);
