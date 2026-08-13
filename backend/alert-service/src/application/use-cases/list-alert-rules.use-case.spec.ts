@@ -25,7 +25,7 @@ describe('ListAlertRulesUseCase', () => {
 
     await useCase.execute(0, 20);
 
-    expect(mockRepo.findAll).toHaveBeenCalledWith(0, 20);
+    expect(mockRepo.findAll).toHaveBeenCalledWith(0, 20, null);
   });
 
   it('caps size at 100', async () => {
@@ -33,6 +33,30 @@ describe('ListAlertRulesUseCase', () => {
 
     await useCase.execute(0, 500);
 
-    expect(mockRepo.findAll).toHaveBeenCalledWith(0, 100);
+    expect(mockRepo.findAll).toHaveBeenCalledWith(0, 100, null);
+  });
+
+  it('forwards serviceId filter when provided', async () => {
+    mockRepo.findAll.mockResolvedValue({ items: [], total: 0 });
+
+    await useCase.execute(0, 20, 'svc-123');
+
+    expect(mockRepo.findAll).toHaveBeenCalledWith(0, 20, 'svc-123');
+  });
+
+  it('defaults serviceId to null when omitted', async () => {
+    mockRepo.findAll.mockResolvedValue({ items: [], total: 0 });
+
+    await useCase.execute(0, 20);
+
+    expect(mockRepo.findAll).toHaveBeenCalledWith(0, 20, null);
+  });
+
+  it('passes through explicit null serviceId unchanged', async () => {
+    mockRepo.findAll.mockResolvedValue({ items: [], total: 0 });
+
+    await useCase.execute(0, 20, null);
+
+    expect(mockRepo.findAll).toHaveBeenCalledWith(0, 20, null);
   });
 });
