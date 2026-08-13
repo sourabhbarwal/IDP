@@ -129,7 +129,7 @@ export class ServicesController {
   }
 
   @Get('graph')
-  @SkipThrottle()
+  @SkipThrottle({ global: true, auth: true })
   @RequirePermissions('service:read')
   @ApiOperation({ summary: 'Get full dependency graph (all services + edges)' })
   @ApiQuery({ name: 'focus', required: false, description: 'Service ID to centre the graph on' })

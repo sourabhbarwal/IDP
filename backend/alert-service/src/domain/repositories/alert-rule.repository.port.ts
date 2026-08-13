@@ -6,7 +6,7 @@ export const ALERT_RULE_REPOSITORY = 'ALERT_RULE_REPOSITORY';
 export interface AlertRuleRepository {
   findById(id: string): Promise<AlertRule | null>;
   findByName(name: string): Promise<AlertRule | null>;
-  findAll(page: number, size: number): Promise<{ items: AlertRule[]; total: number }>;
+  findAll(page: number, size: number, serviceId?: string | null): Promise<{ items: AlertRule[]; total: number }>;
   findEnabled(): Promise<AlertRule[]>;
   existsByName(name: string): Promise<boolean>;
   create(params: {

@@ -8,7 +8,7 @@ import {
 export class ListAlertRulesUseCase {
   constructor(@Inject(ALERT_RULE_REPOSITORY) private readonly repo: AlertRuleRepository) {}
 
-  async execute(page: number, size: number) {
-    return this.repo.findAll(page, Math.min(size, 100));
+  async execute(page: number, size: number, serviceId?: string | null) {
+    return this.repo.findAll(page, Math.min(size, 100), serviceId ?? null);
   }
 }

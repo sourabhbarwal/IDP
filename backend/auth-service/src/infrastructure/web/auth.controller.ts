@@ -98,7 +98,7 @@ export class AuthController {
   }
 
   @Get('me')
-  @SkipThrottle()
+  @SkipThrottle({ global: true, auth: true })
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Get current authenticated user' })
@@ -109,7 +109,7 @@ export class AuthController {
 
   @Post('logout')
   @HttpCode(HttpStatus.NO_CONTENT)
-  @SkipThrottle()
+  @SkipThrottle({ global: true, auth: true })
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Logout and invalidate refresh token' })

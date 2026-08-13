@@ -21,8 +21,9 @@ export class AlertRuleRepositoryAdapter implements AlertRuleRepository {
     return e ? toDomainAlertRule(e) : null;
   }
 
-  async findAll(page: number, size: number): Promise<{ items: AlertRule[]; total: number }> {
+  async findAll(page: number, size: number, serviceId?: string | null): Promise<{ items: AlertRule[]; total: number }> {
     const [items, total] = await this.repo.findAndCount({
+      where: serviceId ? { serviceId } : {},
       order: { createdAt: 'DESC' }, skip: page * size, take: size,
     });
     return { items: items.map(toDomainAlertRule), total };

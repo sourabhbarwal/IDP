@@ -131,7 +131,7 @@ export class CopilotController {
   }
 
   @Get('resilience')
-  @SkipThrottle()
+  @SkipThrottle({ global: true, auth: true })
   @ApiOperation({ summary: 'Circuit breaker states for all downstream dependencies' })
   getResilienceStatus(): Record<string, unknown> {
     return {

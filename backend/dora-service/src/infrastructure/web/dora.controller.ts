@@ -77,7 +77,7 @@ export class DoraController {
   }
 
   @Get('summary')
-  @SkipThrottle()
+  @SkipThrottle({ global: true, auth: true })
   @ApiOperation({ summary: 'Quick summary for dashboard header (level + key numbers)' })
   async getSummary() {
     const metrics = await this.doraService.compute(30);

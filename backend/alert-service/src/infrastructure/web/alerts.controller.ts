@@ -64,9 +64,13 @@ export class AlertsController {
   @Get('rules')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'List all alert rules' })
-  async listRules(@Query('page') page = 0, @Query('size') size = 20) {
-    const result = await this.listRulesUseCase.execute(Number(page), Number(size));
+  @ApiOperation({ summary: 'List alert rules, optionally filtered by service' })
+  async listRules(
+    @Query('page') page = 0,
+    @Query('size') size = 20,
+    @Query('serviceId') serviceId?: string,
+  ) {
+    const result = await this.listRulesUseCase.execute(Number(page), Number(size), serviceId ?? null);
     return buildPageResponse(result.items.map(AlertRuleResponseDto.fromDomain), Number(page), Number(size), result.total);
   }
 
