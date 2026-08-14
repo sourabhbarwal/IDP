@@ -531,6 +531,7 @@ services:
       JWT_ISSUER: idp-platform
       JWT_ALGORITHM: HS256
       KUBECONFIG_PATH: ""
+      K8S_SKIP_TLS_VERIFY: "true"
       ALLOWED_ORIGINS: http://localhost:5173,http://localhost
       OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4317
     deploy:
