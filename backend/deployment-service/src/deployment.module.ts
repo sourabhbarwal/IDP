@@ -25,8 +25,9 @@ import { ListDeploymentsUseCase } from './application/use-cases/list-deployments
 import { DeploymentsController } from './infrastructure/web/deployments.controller';
 import { HealthController } from './infrastructure/web/health.controller';
 import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
-import { THROTTLE_CONFIG_GLOBAL, MetricsModule, MetricsMiddleware} from '@idp/common';
+import { THROTTLE_CONFIG_GLOBAL} from '@idp/common';
 import { APP_GUARD } from '@nestjs/core';
+import { MetricsModule, MetricsMiddleware, RequestLoggerMiddleware } from '@idp/common';
 
 @Module({
   imports: [
@@ -60,6 +61,6 @@ import { APP_GUARD } from '@nestjs/core';
 })
 export class DeploymentModule implements NestModule {   // ← added implements
   configure(consumer: MiddlewareConsumer): void {        // ← added
-    consumer.apply(MetricsMiddleware).forRoutes('*');
+    consumer.apply(MetricsMiddleware, RequestLoggerMiddleware).forRoutes('*');
   }
 }

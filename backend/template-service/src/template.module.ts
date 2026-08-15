@@ -11,10 +11,10 @@ import { GenerateTemplateUseCase } from './application/use-cases/generate-templa
 import { TemplatesController } from './infrastructure/web/templates.controller';
 import { HealthController } from './infrastructure/web/health.controller';
 import { MiddlewareConsumer, NestModule } from '@nestjs/common';
-import { MetricsModule, MetricsMiddleware } from '@idp/common';
 import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
 import { THROTTLE_CONFIG_GLOBAL } from '@idp/common';
 import { APP_GUARD } from '@nestjs/core';
+import { MetricsModule, MetricsMiddleware, RequestLoggerMiddleware } from '@idp/common';
 
 @Module({
   imports: [
@@ -39,6 +39,6 @@ import { APP_GUARD } from '@nestjs/core';
 })
 export class TemplateModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {
-    consumer.apply(MetricsMiddleware).forRoutes('*');
+    consumer.apply(MetricsMiddleware, RequestLoggerMiddleware).forRoutes('*');
   }
 }

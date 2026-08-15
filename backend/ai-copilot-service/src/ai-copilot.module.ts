@@ -4,7 +4,7 @@ import { JwtModule } from '@nestjs/jwt';
 import { PassportModule } from '@nestjs/passport';
 import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
 import { APP_FILTER, APP_GUARD } from '@nestjs/core';
-import { GlobalExceptionFilter, THROTTLE_CONFIG_GLOBAL, MetricsModule, MetricsMiddleware } from '@idp/common';
+import { GlobalExceptionFilter, THROTTLE_CONFIG_GLOBAL } from '@idp/common';
 import { JwtStrategy } from './infrastructure/security/jwt.strategy';
 import { CopilotService } from './application/copilot.service';
 import { GroqClientService } from './application/groq-client.service';
@@ -12,7 +12,7 @@ import { PlatformContextService } from './application/platform-context.service';
 import { CopilotController } from './infrastructure/web/copilot.controller';
 import { HealthController } from './health/health.controller';
 import { CircuitBreakerRegistry } from '@idp/common';
-
+import { MetricsModule, MetricsMiddleware, RequestLoggerMiddleware } from '@idp/common';
 
 @Module({
   imports: [
@@ -38,6 +38,6 @@ import { CircuitBreakerRegistry } from '@idp/common';
 })
 export class AiCopilotModule implements NestModule {   // ← added implements
   configure(consumer: MiddlewareConsumer): void {        // ← added
-    consumer.apply(MetricsMiddleware).forRoutes('*');
+    consumer.apply(MetricsMiddleware,RequestLoggerMiddleware).forRoutes('*');
   }
 }

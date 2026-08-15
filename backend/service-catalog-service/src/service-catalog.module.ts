@@ -23,7 +23,6 @@ import { DeleteServiceUseCase } from './application/use-cases/delete-service.use
 import { ServicesController } from './infrastructure/web/services.controller';
 import { HealthController } from './infrastructure/web/health.controller';
 import { MiddlewareConsumer, NestModule } from '@nestjs/common';
-import { MetricsModule, MetricsMiddleware } from '@idp/common';
 import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
 import { THROTTLE_CONFIG_GLOBAL } from '@idp/common';
 import { APP_GUARD } from '@nestjs/core';
@@ -32,6 +31,7 @@ import { GetServiceHealthUseCase } from './application/use-cases/get-service-hea
 import { GetDependencyGraphUseCase } from './application/use-cases/get-dependency-graph.use-case';
 import { CircuitBreakerRegistry } from '@idp/common';
 import { ServiceDependencyOrmEntity } from './infrastructure/persistence/orm-entities/service-dependency.orm-entity';
+import { MetricsModule, MetricsMiddleware, RequestLoggerMiddleware } from '@idp/common';
 
 @Module({
   imports: [
@@ -66,6 +66,6 @@ import { ServiceDependencyOrmEntity } from './infrastructure/persistence/orm-ent
 })
 export class ServiceCatalogModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {
-    consumer.apply(MetricsMiddleware).forRoutes('*');
+    consumer.apply(MetricsMiddleware, RequestLoggerMiddleware).forRoutes('*');
   }
 }

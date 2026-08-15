@@ -1,11 +1,11 @@
-import { Module } from '@nestjs/common';
+import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { JwtModule } from '@nestjs/jwt';
 import { PassportModule } from '@nestjs/passport';
 import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
 import { APP_FILTER, APP_GUARD } from '@nestjs/core';
-import { GlobalExceptionFilter, THROTTLE_CONFIG_GLOBAL } from '@idp/common';
+import { GlobalExceptionFilter, THROTTLE_CONFIG_GLOBAL, MetricsModule, MetricsMiddleware, RequestLoggerMiddleware} from '@idp/common';
 import configuration from './infrastructure/config/configuration';
 import { JwtStrategy } from './infrastructure/security/jwt.strategy';
 import { DoraController } from './infrastructure/web/dora.controller';
@@ -15,7 +15,6 @@ import { DoraMetricsService } from './application/dora-metrics.service';
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true, load: [configuration], envFilePath: ['.env'] }),
-
     TypeOrmModule.forRootAsync({
       useFactory: (config: ConfigService) => ({
         type:     'postgres',
@@ -32,11 +31,8 @@ import { DoraMetricsService } from './application/dora-metrics.service';
       }),
       inject: [ConfigService],
     }),
-
     ThrottlerModule.forRoot(THROTTLE_CONFIG_GLOBAL),
-
     PassportModule.register({ defaultStrategy: 'jwt' }),
-
     JwtModule.registerAsync({
       useFactory: (config: ConfigService) => ({
         secret: config.get<string>('JWT_SECRET'),
@@ -46,6 +42,7 @@ import { DoraMetricsService } from './application/dora-metrics.service';
       }),
       inject: [ConfigService],
     }),
+    MetricsModule,
   ],
   controllers: [DoraController, HealthController],
   providers: [
@@ -55,4 +52,8 @@ import { DoraMetricsService } from './application/dora-metrics.service';
     { provide: APP_FILTER, useClass: GlobalExceptionFilter },
   ],
 })
-export class DoraModule {}
+export class DoraModule implements NestModule {
+  configure(consumer: MiddlewareConsumer) {
+    consumer.apply(MetricsMiddleware, RequestLoggerMiddleware).forRoutes('*');
+  }
+}

@@ -9,8 +9,9 @@ import { PrometheusQueryService } from './application/prometheus-query.service';
 import { GlobalExceptionFilter } from '@idp/common';
 import { APP_FILTER } from '@nestjs/core';
 import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
-import { THROTTLE_CONFIG_GLOBAL ,MetricsModule, MetricsMiddleware } from '@idp/common';
+import { THROTTLE_CONFIG_GLOBAL} from '@idp/common';
 import { APP_GUARD } from '@nestjs/core';
+import { MetricsModule, MetricsMiddleware, RequestLoggerMiddleware } from '@idp/common';
 
 @Module({
   imports: [
@@ -33,6 +34,6 @@ import { APP_GUARD } from '@nestjs/core';
 })
 export class MonitoringModule implements NestModule {   // ← added implements
   configure(consumer: MiddlewareConsumer): void {        // ← added
-    consumer.apply(MetricsMiddleware).forRoutes('*');
+    consumer.apply(MetricsMiddleware, RequestLoggerMiddleware).forRoutes('*');
   }
 }

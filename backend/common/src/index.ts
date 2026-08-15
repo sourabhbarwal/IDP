@@ -5,6 +5,7 @@ export * from './audit/audit-event';
 export * from './dto/page-response.dto';
 export * from './metrics/metrics.module';
 export * from './metrics/metrics.middleware';
+export * from './logging/request-logger.middleware';
 export { applySecurity } from './security/apply-security';
 export { THROTTLE_CONFIG_GLOBAL, THROTTLE_CONFIG_AUTH } from './security/throttler.config';
 export { initTracing, shutdownTracing } from './telemetry/tracing';

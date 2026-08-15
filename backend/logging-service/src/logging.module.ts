@@ -9,8 +9,9 @@ import { LogsController } from './infrastructure/web/logs.controller';
 import { JwtStrategy } from './infrastructure/security/jwt.strategy';
 import { LokiQueryService } from './application/loki-query.service';
 import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
-import { THROTTLE_CONFIG_GLOBAL, MetricsModule, MetricsMiddleware } from '@idp/common';
+import { THROTTLE_CONFIG_GLOBAL} from '@idp/common';
 import { APP_GUARD } from '@nestjs/core';
+import { MetricsModule, MetricsMiddleware, RequestLoggerMiddleware } from '@idp/common';
 
 @Module({
   imports: [
@@ -33,6 +34,6 @@ import { APP_GUARD } from '@nestjs/core';
 })
 export class LoggingModule implements NestModule {   // ← added implements
   configure(consumer: MiddlewareConsumer): void {        // ← added
-    consumer.apply(MetricsMiddleware).forRoutes('*');
+    consumer.apply(MetricsMiddleware, RequestLoggerMiddleware).forRoutes('*');
   }
 }

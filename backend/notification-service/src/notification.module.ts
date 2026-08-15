@@ -6,8 +6,9 @@ import { NotificationsController } from './infrastructure/web/notifications.cont
 import { HealthController } from './health/health.controller';
 import { NotificationDispatcherService } from './application/services/notification-dispatcher.service';
 import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
-import { THROTTLE_CONFIG_GLOBAL, MetricsModule, MetricsMiddleware } from '@idp/common';
+import { THROTTLE_CONFIG_GLOBAL} from '@idp/common';
 import { APP_GUARD } from '@nestjs/core';
+import { MetricsModule, MetricsMiddleware, RequestLoggerMiddleware } from '@idp/common';
 
 @Module({
   imports: [ConfigModule.forRoot({ isGlobal: true, envFilePath: ['.env'] }),ThrottlerModule.forRoot(THROTTLE_CONFIG_GLOBAL),MetricsModule,],
@@ -20,6 +21,6 @@ import { APP_GUARD } from '@nestjs/core';
 })
 export class NotificationModule implements NestModule {   // ← added implements
   configure(consumer: MiddlewareConsumer): void {        // ← added
-    consumer.apply(MetricsMiddleware).forRoutes('*');
+    consumer.apply(MetricsMiddleware,RequestLoggerMiddleware).forRoutes('*');
   }
 }

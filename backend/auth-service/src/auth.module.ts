@@ -47,10 +47,10 @@ import { AuthController } from './infrastructure/web/auth.controller';
 import { UsersController } from './infrastructure/web/users.controller';
 
 import { MiddlewareConsumer, NestModule } from '@nestjs/common';
-import { MetricsModule, MetricsMiddleware } from '@idp/common';
 import { APP_GUARD } from '@nestjs/core';
 import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
 import { THROTTLE_CONFIG_AUTH} from '@idp/common';
+import { MetricsModule, MetricsMiddleware, RequestLoggerMiddleware } from '@idp/common';
 
 @Module({
   imports: [
@@ -148,6 +148,6 @@ import { THROTTLE_CONFIG_AUTH} from '@idp/common';
 })
 export class AuthModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {
-    consumer.apply(MetricsMiddleware).forRoutes('*');
+    consumer.apply(MetricsMiddleware, RequestLoggerMiddleware).forRoutes('*');
   }
 }
