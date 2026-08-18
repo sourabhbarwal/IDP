@@ -12,10 +12,8 @@ title = "IDP Platform Gitleaks Config"
     "change-me.*",
     "your-github-.*",
     "your-.*-here",
-    "***REMOVED***",
-    "***REMOVED***",
     "local-dev-only-secret.*",
-    "***REMOVED***",
     "integration-test-secret.*",
     "ci-integration-test-secret.*",
+    "REMOVED",
   ]
