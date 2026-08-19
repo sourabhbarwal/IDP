@@ -1,4 +1,5 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { AUDIT_PUBLISHER, AuditPublisher, createAuditEvent } from '@idp/common';
 import { Deployment } from '../../domain/entities/deployment.entity';
 import { DeploymentStrategy } from '../../domain/enums/deployment-strategy.enum';
@@ -43,6 +44,7 @@ export class CreateDeploymentUseCase {
     private readonly rollingStrategy: RollingStrategy,
     private readonly blueGreenStrategy: BlueGreenStrategy,
     private readonly canaryStrategy: CanaryStrategy,
+    private readonly config: ConfigService,
   ) {}
 
   private async notifyRealtime(
@@ -50,8 +52,8 @@ export class CreateDeploymentUseCase {
     deployment: Deployment,
     severity: 'info' | 'warning' | 'critical' = 'info',
   ): Promise<void> {
-    const url   = process.env.REALTIME_SERVICE_URL   ?? 'http://realtime-service:3013';
-    const token = process.env.INTERNAL_WEBHOOK_TOKEN ?? '***REMOVED***';
+    const url   = this.config.get<string>('REALTIME_SERVICE_URL', 'http://realtime-service:3013');
+    const token = this.config.getOrThrow<string>('INTERNAL_WEBHOOK_TOKEN');
 
     try {
       await resilientFetch(

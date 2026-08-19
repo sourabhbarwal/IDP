@@ -237,7 +237,7 @@ spec:
             - containerPort: 3000
           env:
             - name: GF_SECURITY_ADMIN_PASSWORD
-              value: "***REMOVED***"
+              value: "local-kind-cluster-secret-change-for-real-deployments"
             - name: GF_SECURITY_ADMIN_USER
               value: "admin"
             - name: GF_USERS_ALLOW_SIGN_UP

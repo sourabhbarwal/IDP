@@ -1,5 +1,6 @@
 import { Body, Controller, Get, HttpCode, HttpStatus, Param, Post, Query, Req, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { ConfigService } from '@nestjs/config';
 import { Request } from 'express';
 import { ApiException, buildPageResponse } from '@idp/common';
 import { AlertRuleNameConflictError, AlertEventNotFoundError } from '../../domain/exceptions/domain-exceptions';
@@ -28,6 +29,7 @@ export class AlertsController {
     private readonly getActiveAlertsUseCase: GetActiveAlertsUseCase,
     private readonly acknowledgeAlertUseCase: AcknowledgeAlertUseCase,
     private readonly webhookUseCase: ProcessAlertManagerWebhookUseCase,
+    private readonly config: ConfigService,
   ) {}
 
   // ── Alert Rules ────────────────────────────────────────────────────────────
@@ -111,8 +113,10 @@ export class AlertsController {
     @Req() req: Request,
   ): Promise<{ received: boolean }> {
     const token = (req.headers['authorization'] as string)?.replace('Bearer ', '');
-    const expectedToken = process.env.WEBHOOK_TOKEN ?? '***REMOVED***';
-    if (token !== expectedToken) throw ApiException.unauthorized('Invalid webhook token');
+    // Sourced from configuration.ts's webhookToken (which itself fails fast if unset) —
+    // no separate hardcoded fallback here, so there's only one place this can drift.
+    const expectedToken = this.config.get<string>('webhookToken');
+    if (!expectedToken || token !== expectedToken) throw ApiException.unauthorized('Invalid webhook token');
 
     await this.webhookUseCase.execute(payload);
     return { received: true };

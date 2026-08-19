@@ -27,7 +27,7 @@ services:
     environment:
       POSTGRES_DB: idp
       POSTGRES_USER: idp
-      POSTGRES_PASSWORD: ***REMOVED***
+      POSTGRES_PASSWORD: DEhTo02GHuR6zw7b81KaYSpc
       # Tune for PgBouncer transaction pooling
       POSTGRES_INITDB_ARGS: "--encoding=UTF8"
     volumes:
@@ -69,7 +69,7 @@ services:
         DATABASES_HOST: postgres
         DATABASES_PORT: "5432"
         DATABASES_USER: idp
-        DATABASES_PASSWORD: ***REMOVED***
+        DATABASES_PASSWORD: DEhTo02GHuR6zw7b81KaYSpc
         DATABASES_DBNAME: idp
         PGBOUNCER_POOL_MODE: transaction
         PGBOUNCER_MAX_CLIENT_CONN: "200"
@@ -173,7 +173,7 @@ services:
       - "3000:3000"
     environment:
       GF_SECURITY_ADMIN_USER: admin
-      GF_SECURITY_ADMIN_PASSWORD: ***REMOVED***
+      GF_SECURITY_ADMIN_PASSWORD: W0NibSgBAa8ThKo6MJxl
       GF_USERS_ALLOW_SIGN_UP: "false"
     volumes:
       - ./monitoring/grafana/provisioning/datasources:/etc/grafana/provisioning/datasources:ro
@@ -364,12 +364,12 @@ services:
       DB_HOST: pgbouncer
       DB_PORT: 6432
       DB_USERNAME: idp
-      DB_PASSWORD: ***REMOVED***
+      DB_PASSWORD: DEhTo02GHuR6zw7b81KaYSpc
       DB_NAME: idp
       DB_SCHEMA: auth
       REDIS_HOST: redis
       REDIS_PORT: 6379
-      JWT_SECRET: ***REMOVED***
+      JWT_SECRET: aPoXz8sxJUV65yGSu13RQrjtvHFZYf9w4DIkpTBO2bclAM7m
       JWT_ISSUER: idp-platform
       JWT_ALGORITHM: HS256
       JWT_ACCESS_TOKEN_TTL_SECONDS: 900
@@ -408,10 +408,10 @@ services:
       DB_HOST: pgbouncer
       DB_PORT: 6432
       DB_USERNAME: idp
-      DB_PASSWORD: ***REMOVED***
+      DB_PASSWORD: DEhTo02GHuR6zw7b81KaYSpc
       DB_NAME: idp
       DB_SCHEMA: catalog
-      JWT_SECRET: ***REMOVED***
+      JWT_SECRET: aPoXz8sxJUV65yGSu13RQrjtvHFZYf9w4DIkpTBO2bclAM7m
       JWT_ISSUER: idp-platform
       JWT_ALGORITHM: HS256
       ALERT_SERVICE_URL:      http://alert-service:3008
@@ -451,10 +451,10 @@ services:
       DB_HOST: pgbouncer
       DB_PORT: 6432
       DB_USERNAME: idp
-      DB_PASSWORD: ***REMOVED***
+      DB_PASSWORD: DEhTo02GHuR6zw7b81KaYSpc
       DB_NAME: idp
       DB_SCHEMA: repository
-      JWT_SECRET: ***REMOVED***
+      JWT_SECRET: aPoXz8sxJUV65yGSu13RQrjtvHFZYf9w4DIkpTBO2bclAM7m
       JWT_ISSUER: idp-platform
       JWT_ALGORITHM: HS256
       GITHUB_OWNER: your-github-username
@@ -487,7 +487,7 @@ services:
     environment:
       NODE_ENV: development
       PORT: 3004
-      JWT_SECRET: ***REMOVED***
+      JWT_SECRET: aPoXz8sxJUV65yGSu13RQrjtvHFZYf9w4DIkpTBO2bclAM7m
       JWT_ISSUER: idp-platform
       JWT_ALGORITHM: HS256
       ALLOWED_ORIGINS: http://localhost:5173,http://localhost
@@ -524,10 +524,10 @@ services:
       DB_HOST: pgbouncer
       DB_PORT: 6432
       DB_USERNAME: idp
-      DB_PASSWORD: ***REMOVED***
+      DB_PASSWORD: DEhTo02GHuR6zw7b81KaYSpc
       DB_NAME: idp
       DB_SCHEMA: deployment
-      JWT_SECRET: ***REMOVED***
+      JWT_SECRET: aPoXz8sxJUV65yGSu13RQrjtvHFZYf9w4DIkpTBO2bclAM7m
       JWT_ISSUER: idp-platform
       JWT_ALGORITHM: HS256
       KUBECONFIG_PATH: ""
@@ -563,7 +563,7 @@ services:
     environment:
       NODE_ENV: development
       PORT: 3006
-      JWT_SECRET: ***REMOVED***
+      JWT_SECRET: aPoXz8sxJUV65yGSu13RQrjtvHFZYf9w4DIkpTBO2bclAM7m
       JWT_ISSUER: idp-platform
       JWT_ALGORITHM: HS256
       PROMETHEUS_URL: http://prometheus:9090
@@ -597,7 +597,7 @@ services:
     environment:
       NODE_ENV: development
       PORT: 3007
-      JWT_SECRET: ***REMOVED***
+      JWT_SECRET: aPoXz8sxJUV65yGSu13RQrjtvHFZYf9w4DIkpTBO2bclAM7m
       JWT_ISSUER: idp-platform
       JWT_ALGORITHM: HS256
       LOKI_URL: http://loki:3100
@@ -636,18 +636,18 @@ services:
       DB_HOST: pgbouncer
       DB_PORT: 6432
       DB_USERNAME: idp
-      DB_PASSWORD: ***REMOVED***
+      DB_PASSWORD: DEhTo02GHuR6zw7b81KaYSpc
       DB_NAME: idp
       DB_SCHEMA: alert
-      JWT_SECRET: ***REMOVED***
+      JWT_SECRET: aPoXz8sxJUV65yGSu13RQrjtvHFZYf9w4DIkpTBO2bclAM7m
       JWT_ISSUER: idp-platform
       JWT_ALGORITHM: HS256
       ALERTMANAGER_URL: http://alertmanager:9093
-      WEBHOOK_TOKEN: ***REMOVED***
+      WEBHOOK_TOKEN: 4acBgv9nPsxDJGkmHzlb51eVQpLCoYFi
       ALLOWED_ORIGINS: http://localhost:5173,http://localhost
       OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4317
       REALTIME_SERVICE_URL: http://realtime-service:3013
-      INTERNAL_WEBHOOK_TOKEN: ***REMOVED***
+      INTERNAL_WEBHOOK_TOKEN: 4acBgv9nPsxDJGkmHzlb51eVQpLCoYFi
     deploy:
       resources:
         limits:
@@ -674,10 +674,10 @@ services:
     environment:
       NODE_ENV: development
       PORT: 3009
-      JWT_SECRET: ***REMOVED***
+      JWT_SECRET: aPoXz8sxJUV65yGSu13RQrjtvHFZYf9w4DIkpTBO2bclAM7m
       JWT_ISSUER: idp-platform
       JWT_ALGORITHM: HS256
-      WEBHOOK_TOKEN: ***REMOVED***
+      WEBHOOK_TOKEN: 4acBgv9nPsxDJGkmHzlb51eVQpLCoYFi
       ALLOWED_ORIGINS: http://localhost:5173,http://localhost
       OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4317
       # Uncomment to activate channels:
@@ -714,9 +714,9 @@ services:
       DB_HOST: pgbouncer
       DB_PORT: 6432
       DB_USERNAME: idp
-      DB_PASSWORD: ***REMOVED***
+      DB_PASSWORD: DEhTo02GHuR6zw7b81KaYSpc
       DB_NAME: idp
-      JWT_SECRET: ***REMOVED***
+      JWT_SECRET: aPoXz8sxJUV65yGSu13RQrjtvHFZYf9w4DIkpTBO2bclAM7m
       JWT_ISSUER: idp-platform
       JWT_ALGORITHM: HS256
       ALLOWED_ORIGINS: http://localhost:5173,http://localhost
@@ -750,7 +750,7 @@ services:
     environment:
       NODE_ENV: development
       PORT: 3011
-      JWT_SECRET: ***REMOVED***
+      JWT_SECRET: aPoXz8sxJUV65yGSu13RQrjtvHFZYf9w4DIkpTBO2bclAM7m
       JWT_ISSUER: idp-platform
       JWT_ALGORITHM: HS256
       PROMETHEUS_URL: http://prometheus:9090
@@ -788,7 +788,7 @@ services:
     environment:
       NODE_ENV: development
       PORT: 3012
-      JWT_SECRET: ***REMOVED***
+      JWT_SECRET: aPoXz8sxJUV65yGSu13RQrjtvHFZYf9w4DIkpTBO2bclAM7m
       JWT_ISSUER: idp-platform
       JWT_ALGORITHM: HS256
       GROQ_API_KEY: ${GROQ_API_KEY:-}
@@ -848,10 +848,10 @@ services:
     environment:
       NODE_ENV: development
       PORT: 3013
-      JWT_SECRET: ***REMOVED***
+      JWT_SECRET: aPoXz8sxJUV65yGSu13RQrjtvHFZYf9w4DIkpTBO2bclAM7m
       JWT_ISSUER: idp-platform
       # Internal webhook token — other services use this to POST events
-      INTERNAL_WEBHOOK_TOKEN: ***REMOVED***
+      INTERNAL_WEBHOOK_TOKEN: 4acBgv9nPsxDJGkmHzlb51eVQpLCoYFi
       REDIS_HOST: redis
       REDIS_PORT: 6379
       ALLOWED_ORIGINS: http://localhost:5173,http://localhost
@@ -886,9 +886,9 @@ services:
       DB_HOST: pgbouncer
       DB_PORT: 6432
       DB_USERNAME: idp
-      DB_PASSWORD: ***REMOVED***
+      DB_PASSWORD: DEhTo02GHuR6zw7b81KaYSpc
       DB_NAME: idp
-      JWT_SECRET: ***REMOVED***
+      JWT_SECRET: aPoXz8sxJUV65yGSu13RQrjtvHFZYf9w4DIkpTBO2bclAM7m
       JWT_ISSUER: idp-platform
       ALLOWED_ORIGINS: http://localhost:5173,http://localhost
     deploy:

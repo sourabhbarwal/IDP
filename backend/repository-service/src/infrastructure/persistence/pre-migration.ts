@@ -1,3 +1,10 @@
+function requireEnv(name: string): string {
+  const value = process.env[name];
+  if (!value) {
+    throw new Error(`Missing required environment variable: ${name}. Refusing to start with a default/guessable value for a security-sensitive setting.`);
+  }
+  return value;
+}
 import { Client } from 'pg';
 import * as dotenv from 'dotenv';
 
@@ -8,7 +15,7 @@ async function run() {
     host: process.env.DB_HOST ?? 'localhost',
     port: Number(process.env.DB_PORT ?? 5432),
     user: process.env.DB_USERNAME ?? 'idp',
-    password: process.env.DB_PASSWORD ?? '***REMOVED***',
+    password: requireEnv('DB_PASSWORD'),
     database: process.env.DB_NAME ?? 'idp',
   });
 

@@ -1,3 +1,10 @@
+function requireEnv(name: string): string {
+  const value = process.env[name];
+  if (!value) {
+    throw new Error(`Missing required environment variable: ${name}. Refusing to start with a default/guessable value for a security-sensitive setting.`);
+  }
+  return value;
+}
 import { DataSource } from 'typeorm';
 import * as dotenv from 'dotenv';
 import { DeploymentOrmEntity } from './orm-entities/deployment.orm-entity';
@@ -10,7 +17,7 @@ export const AppDataSource = new DataSource({
   host: process.env.DB_HOST ?? 'localhost',
   port: Number(process.env.DB_PORT ?? 5432),
   username: process.env.DB_USERNAME ?? 'idp',
-  password: process.env.DB_PASSWORD ?? '***REMOVED***',
+  password: requireEnv('DB_PASSWORD'),
   database: process.env.DB_NAME ?? 'idp',
   schema: 'deployment',
   entities: [DeploymentOrmEntity, AuditLogOrmEntity],

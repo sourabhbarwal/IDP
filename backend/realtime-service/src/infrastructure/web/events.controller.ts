@@ -64,10 +64,7 @@ export class EventsController {
 
   private validateWebhookToken(req: Request): void {
     const token = (req.headers['x-internal-token'] as string) ?? '';
-    const expected = this.config.get<string>(
-      'INTERNAL_WEBHOOK_TOKEN',
-      '***REMOVED***',
-    );
+    const expected = this.config.getOrThrow<string>('INTERNAL_WEBHOOK_TOKEN');
     if (token !== expected) {
       throw ApiException.unauthorized('Invalid internal webhook token');
     }

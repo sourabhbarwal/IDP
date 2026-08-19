@@ -1,4 +1,5 @@
 import { CreateDeploymentUseCase } from './create-deployment.use-case';
+import { ConfigService } from '@nestjs/config';
 import { DeploymentStrategy } from '../../domain/enums/deployment-strategy.enum';
 import { DeploymentStatus } from '../../domain/enums/deployment-status.enum';
 import { EnvironmentName } from '../../domain/enums/environment-name.enum';
@@ -45,6 +46,32 @@ const mockK8s: jest.Mocked<KubernetesClient> = {
 
 const mockAudit: jest.Mocked<AuditPublisher> = { publish: jest.fn() };
 
+// notifyRealtime() makes a real fetch() call to realtime-service. Outside Docker
+// (e.g. running `npm test` on the host), that hostname doesn't resolve, and
+// resilientFetch's retry/timeout config can push a single test well past Jest's
+// default 5s timeout. Mock fetch so these tests never depend on real network
+// timing — notifyRealtime already treats failures as non-fatal (best-effort).
+let fetchSpy: jest.SpyInstance;
+beforeAll(() => {
+  fetchSpy = jest.spyOn(global, 'fetch').mockRejectedValue(new Error('mocked: no network in unit tests'));
+});
+afterAll(() => {
+  fetchSpy.mockRestore();
+});
+
+// Mimics ConfigService well enough for this use case's two calls:
+// get('REALTIME_SERVICE_URL', default) and getOrThrow('INTERNAL_WEBHOOK_TOKEN').
+const mockConfig = {
+  get: jest.fn((key: string, defaultValue?: string) => {
+    if (key === 'REALTIME_SERVICE_URL') return 'http://realtime-service:3013';
+    return defaultValue;
+  }),
+  getOrThrow: jest.fn((key: string) => {
+    if (key === 'INTERNAL_WEBHOOK_TOKEN') return 'test-internal-token';
+    throw new Error(`mockConfig.getOrThrow: no test value configured for "${key}"`);
+  }),
+} as unknown as jest.Mocked<ConfigService>;
+
 const command = {
   serviceId: 's-1', serviceName: 'my-api', environment: EnvironmentName.DEVELOPMENT,
   imageTag: 'abc123', strategy: DeploymentStrategy.ROLLING, replicas: 1,
@@ -59,6 +86,7 @@ describe('CreateDeploymentUseCase', () => {
     useCase = new CreateDeploymentUseCase(
       mockRepo, mockK8s, mockAudit,
       new RollingStrategy(), new BlueGreenStrategy(), new CanaryStrategy(),
+      mockConfig,
     );
   });
 
@@ -143,6 +171,26 @@ describe('CreateDeploymentUseCase', () => {
 
     expect(mockRepo.create).toHaveBeenCalledWith(
       expect.objectContaining({ previousImageTag: 'abc123' }),
+    );
+  });
+
+  it('fails the deployment (does not crash the process) when INTERNAL_WEBHOOK_TOKEN is unset', async () => {
+    mockConfig.getOrThrow.mockImplementationOnce(() => {
+      throw new Error('Missing required environment variable: INTERNAL_WEBHOOK_TOKEN');
+    });
+    mockRepo.findLastSuccessful.mockResolvedValue(null);
+    mockRepo.create.mockResolvedValue(makeDeployment(DeploymentStatus.IN_PROGRESS));
+    mockK8s.ensureNamespace.mockResolvedValue(undefined);
+    mockK8s.applyRollingDeployment.mockResolvedValue(undefined);
+    mockRepo.updateStatus.mockResolvedValue(undefined);
+    mockAudit.publish.mockResolvedValue(undefined);
+
+    // getOrThrow fires inside notifyRealtime, which execute() calls within its own
+    // try/catch — so a missing token surfaces as a failed deployment, not an
+    // unhandled crash. Confirms the fail-fast config change degrades safely.
+    await expect(useCase.execute(command)).rejects.toThrow(KubernetesOperationError);
+    expect(mockRepo.updateStatus).toHaveBeenCalledWith(
+      'd-1', DeploymentStatus.FAILED, expect.stringContaining('INTERNAL_WEBHOOK_TOKEN'),
     );
   });
 });

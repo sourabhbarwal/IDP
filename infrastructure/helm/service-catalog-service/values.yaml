@@ -26,5 +26,5 @@ idp-service:
     DB_SCHEMA: catalog
     ALLOWED_ORIGINS: "http://idp.localtest.me"
   secretData:
-    DB_PASSWORD: ***REMOVED***
+    DB_PASSWORD: local-kind-cluster-secret-change-for-real-deployments
     JWT_SECRET: local-kind-cluster-secret-change-for-real-deployments

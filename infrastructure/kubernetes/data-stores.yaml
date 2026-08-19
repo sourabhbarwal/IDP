@@ -29,7 +29,7 @@ spec:
             - name: POSTGRES_USER
               value: idp
             - name: POSTGRES_PASSWORD
-              value: ***REMOVED***
+              value: local-kind-cluster-secret-change-for-real-deployments
           resources:
             requests:
               cpu: "100m"

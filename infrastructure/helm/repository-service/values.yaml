@@ -27,6 +27,6 @@ idp-service:
     ALLOWED_ORIGINS: "http://idp.localtest.me"
     GITHUB_OWNER: "your-github-username"
   secretData:
-    DB_PASSWORD: ***REMOVED***
+    DB_PASSWORD: local-kind-cluster-secret-change-for-real-deployments
     JWT_SECRET: local-kind-cluster-secret-change-for-real-deployments
     GITHUB_TOKEN: "your-github-pat-here"

@@ -1,11 +1,24 @@
 ﻿const { Client } = require('pg');
+
+const password = process.env.DB_PASSWORD;
+if (!password) {
+  console.error(
+    'Missing required environment variable: DB_PASSWORD. ' +
+    'Set it before running this script, e.g.:\n' +
+    '  $env:DB_PASSWORD="your-password"; node create-schemas.js   (PowerShell)\n' +
+    '  DB_PASSWORD=your-password node create-schemas.js            (bash)',
+  );
+  process.exit(1);
+}
+
 const c = new Client({
-  host: 'localhost',
-  port: 5432,
-  user: 'idp',
-  password: '***REMOVED***',
-  database: 'idp',
+  host: process.env.DB_HOST || 'localhost',
+  port: Number(process.env.DB_PORT || 5432),
+  user: process.env.DB_USERNAME || 'idp',
+  password,
+  database: process.env.DB_NAME || 'idp',
 });
+
 c.connect()
   .then(() => c.query('CREATE SCHEMA IF NOT EXISTS auth'))
   .then(() => c.query('CREATE SCHEMA IF NOT EXISTS catalog'))

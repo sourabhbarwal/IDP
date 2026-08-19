@@ -46,10 +46,7 @@ export class ProcessAlertManagerWebhookUseCase {
       'REALTIME_SERVICE_URL',
       'http://realtime-service:3013',
     );
-    this.internalToken = config.get<string>(
-      'INTERNAL_WEBHOOK_TOKEN',
-      '***REMOVED***',
-    );
+    this.internalToken = config.getOrThrow<string>('INTERNAL_WEBHOOK_TOKEN');
   }
 
   async execute(payload: AlertManagerWebhookPayload): Promise<void> {

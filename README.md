@@ -26,7 +26,7 @@ React frontend, PostgreSQL, and a complete observability stack.
 | Tool | Port | Purpose |
 |---|---|---|
 | Prometheus | 9090 | Metrics collection |
-| Grafana | 3000 | Dashboards (admin / ***REMOVED***) |
+| Grafana | 3000 | Dashboards (admin / <see docker-compose.yml GF_SECURITY_ADMIN_PASSWORD>) |
 | Loki | 3100 | Log aggregation |
 | AlertManager | 9093 | Alert routing |
 
