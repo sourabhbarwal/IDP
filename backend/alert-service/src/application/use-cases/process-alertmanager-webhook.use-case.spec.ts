@@ -35,8 +35,25 @@ const payload: AlertManagerWebhookPayload = {
 
 describe('ProcessAlertManagerWebhookUseCase', () => {
   let useCase: ProcessAlertManagerWebhookUseCase;
+
+  // publishToRealtime() makes a real fetch() call to realtime-service, which
+  // doesn't resolve outside Docker. Mock it so these tests never depend on
+  // real network/DNS timing — see the same fix applied to
+  // create-deployment.use-case.spec.ts for the full explanation.
+  let fetchSpy: jest.SpyInstance;
+  beforeAll(() => {
+    fetchSpy = jest.spyOn(global, 'fetch').mockRejectedValue(new Error('mocked: no network in unit tests'));
+  });
+  afterAll(() => {
+    fetchSpy.mockRestore();
+  });
+
   const mockConfig = {
     get: jest.fn((key: string, def?: string) => def ?? ''),
+    getOrThrow: jest.fn((key: string) => {
+      if (key === 'INTERNAL_WEBHOOK_TOKEN') return 'test-internal-token';
+      throw new Error(`mockConfig.getOrThrow: no test value configured for "${key}"`);
+    }),
   } as unknown as ConfigService;
 
   beforeEach(() => { jest.clearAllMocks(); useCase = new ProcessAlertManagerWebhookUseCase(mockRepo, mockConfig); });
