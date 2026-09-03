@@ -793,7 +793,7 @@ services:
       JWT_ISSUER: idp-platform
       JWT_ALGORITHM: HS256
       GROQ_API_KEY: ${GROQ_API_KEY:-}
-      GROQ_MODEL: llama-3.3-70b-versatile
+      GROQ_MODEL: openai/gpt-oss-120b
       GROQ_MAX_TOKENS: "2048"
       ALERT_SERVICE_URL: http://alert-service:3008
       COST_SERVICE_URL: http://cost-service:3011
