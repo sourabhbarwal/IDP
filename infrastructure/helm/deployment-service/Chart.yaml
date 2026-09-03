@@ -1,0 +1,10 @@
+apiVersion: v2
+name: deployment-service
+description: IDP Platform deployment-service Helm chart
+type: application
+version: 0.1.0
+appVersion: "0.1.0"
+dependencies:
+  - name: idp-service
+    version: 0.1.0
+    repository: "file://../idp-service"

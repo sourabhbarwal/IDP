@@ -1,0 +1,30 @@
+idp-service:
+  nameOverride: alert-service
+  image:
+    repository: idp-platform/alert-service
+    tag: local
+  service:
+    port: 80
+    targetPort: 3008
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+  hpa:
+    minReplicas: 1
+    maxReplicas: 3
+  env:
+    NODE_ENV: production
+    PORT: "3008"
+    JWT_ISSUER: idp-platform
+    DB_HOST: postgres.platform.svc.cluster.local
+    DB_PORT: "5432"
+    DB_USERNAME: idp
+    DB_NAME: idp
+    DB_SCHEMA: alert
+  secretData:
+    JWT_SECRET: local-kind-cluster-secret-change-for-real-deployments
+    DB_PASSWORD: local-kind-cluster-secret-change-for-real-deployments

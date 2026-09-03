@@ -1,64 +1,86 @@
-# Namespace automation per ADR-0001/ADR-0008: <env>-<service-name>
-# Apply: kubectl apply -f infrastructure/kubernetes/namespaces.yaml
-
+# All 14 IDP Platform service namespaces
+# Apply with: kubectl apply -f infrastructure/kubernetes/namespaces.yaml
 apiVersion: v1
-kind: Namespace
-metadata:
-  name: platform
-  labels:
-    managed-by: idp-platform
-    purpose: shared-infrastructure
----
-apiVersion: v1
-kind: Namespace
-metadata:
-  name: dev-auth-service
-  labels:
-    managed-by: idp-platform
-    environment: dev
-    service: auth-service
----
-apiVersion: v1
-kind: Namespace
-metadata:
-  name: dev-service-catalog-service
-  labels:
-    managed-by: idp-platform
-    environment: dev
-    service: service-catalog-service
----
-apiVersion: v1
-kind: Namespace
-metadata:
-  name: dev-repository-service
-  labels:
-    managed-by: idp-platform
-    environment: dev
-    service: repository-service
----
-apiVersion: v1
-kind: Namespace
-metadata:
-  name: dev-template-service
-  labels:
-    managed-by: idp-platform
-    environment: dev
-    service: template-service
----
-apiVersion: v1
-kind: Namespace
-metadata:
-  name: dev-frontend
-  labels:
-    managed-by: idp-platform
-    environment: dev
-    service: frontend
----
-apiVersion: v1
-kind: Namespace
-metadata:
-  name: dev-deployment-service
-  labels:
-    managed-by: idp-platform
-    environment: dev
-    service: deployment-service
+kind: List
+items:
+  - apiVersion: v1
+    kind: Namespace
+    metadata:
+      name: dev-auth-service
+      labels: { idp-platform: "true", environment: dev }
+  - apiVersion: v1
+    kind: Namespace
+    metadata:
+      name: dev-service-catalog-service
+      labels: { idp-platform: "true", environment: dev }
+  - apiVersion: v1
+    kind: Namespace
+    metadata:
+      name: dev-repository-service
+      labels: { idp-platform: "true", environment: dev }
+  - apiVersion: v1
+    kind: Namespace
+    metadata:
+      name: dev-template-service
+      labels: { idp-platform: "true", environment: dev }
+  - apiVersion: v1
+    kind: Namespace
+    metadata:
+      name: dev-deployment-service
+      labels: { idp-platform: "true", environment: dev }
+  - apiVersion: v1
+    kind: Namespace
+    metadata:
+      name: dev-monitoring-service
+      labels: { idp-platform: "true", environment: dev }
+  - apiVersion: v1
+    kind: Namespace
+    metadata:
+      name: dev-logging-service
+      labels: { idp-platform: "true", environment: dev }
+  - apiVersion: v1
+    kind: Namespace
+    metadata:
+      name: dev-alert-service
+      labels: { idp-platform: "true", environment: dev }
+  - apiVersion: v1
+    kind: Namespace
+    metadata:
+      name: dev-notification-service
+      labels: { idp-platform: "true", environment: dev }
+  - apiVersion: v1
+    kind: Namespace
+    metadata:
+      name: dev-audit-service
+      labels: { idp-platform: "true", environment: dev }
+  - apiVersion: v1
+    kind: Namespace
+    metadata:
+      name: dev-cost-service
+      labels: { idp-platform: "true", environment: dev }
+  - apiVersion: v1
+    kind: Namespace
+    metadata:
+      name: dev-ai-copilot-service
+      labels: { idp-platform: "true", environment: dev }
+  - apiVersion: v1
+    kind: Namespace
+    metadata:
+      name: dev-realtime-service
+      labels: { idp-platform: "true", environment: dev }
+  - apiVersion: v1
+    kind: Namespace
+    metadata:
+      name: dev-dora-service
+      labels: { idp-platform: "true", environment: dev }
+  # Infrastructure namespaces
+  - apiVersion: v1
+    kind: Namespace
+    metadata:
+      name: idp-infra
+      labels: { idp-platform: "true", tier: infrastructure }
+  - apiVersion: v1
+    kind: Namespace
+    metadata:
+      name: idp-monitoring
+      labels: { idp-platform: "true", tier: observability }

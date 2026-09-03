@@ -1,0 +1,24 @@
+idp-service:
+  nameOverride: cost-service
+  image:
+    repository: idp-platform/cost-service
+    tag: local
+  service:
+    port: 80
+    targetPort: 3011
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+  hpa:
+    minReplicas: 1
+    maxReplicas: 3
+  env:
+    NODE_ENV: production
+    PORT: "3011"
+    JWT_ISSUER: idp-platform
+  secretData:
+    JWT_SECRET: local-kind-cluster-secret-change-for-real-deployments

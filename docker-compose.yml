@@ -528,6 +528,7 @@ services:
       DB_NAME: idp
       DB_SCHEMA: deployment
       JWT_SECRET: aPoXz8sxJUV65yGSu13RQrjtvHFZYf9w4DIkpTBO2bclAM7m
+      INTERNAL_WEBHOOK_TOKEN: 4acBgv9nPsxDJGkmHzlb51eVQpLCoYFi
       JWT_ISSUER: idp-platform
       JWT_ALGORITHM: HS256
       KUBECONFIG_PATH: ""
