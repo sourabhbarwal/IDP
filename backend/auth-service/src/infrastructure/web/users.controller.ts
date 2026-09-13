@@ -49,8 +49,9 @@ export class UsersController {
   @Get('me')
   @SkipThrottle()
   @ApiOperation({ summary: 'Get current authenticated user (alias for /auth/me)' })
-  async me(@CurrentUser() user: AuthenticatedUser) {
-    return this.getCurrentUser.execute(user.userId);
+  async me(@CurrentUser() user: AuthenticatedUser): Promise<UserResponseDto> {
+    const currentUser = await this.getCurrentUser.execute(user.userId);
+    return UserResponseDto.fromDomain(currentUser);
   }
 
   // ── ADMIN-ONLY endpoints ─────────────────────────────────────────────────
@@ -110,8 +111,9 @@ export class UsersController {
   @SkipThrottle()
   @RequirePermissions('user:read')
   @ApiOperation({ summary: 'Get user by ID (admin only)' })
-  async getById(@Param('id') id: string) {
-    return this.getCurrentUser.execute(id);
+  async getById(@Param('id') id: string): Promise<UserResponseDto> {
+    const user = await this.getCurrentUser.execute(id);
+    return UserResponseDto.fromDomain(user);
   }
 
   @Patch(':id/roles')
