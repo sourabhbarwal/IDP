@@ -52,6 +52,12 @@ import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
 import { THROTTLE_CONFIG_AUTH} from '@idp/common';
 import { MetricsModule, MetricsMiddleware, RequestLoggerMiddleware } from '@idp/common';
 
+import { ListUsersUseCase } from './application/use-cases/list-users.use-case';
+import { CreateUserUseCase } from './application/use-cases/create-user.use-case';
+import { UpdateUserRolesUseCase } from './application/use-cases/update-user-roles.use-case';
+import { UpdateUserStatusUseCase } from './application/use-cases/update-user-status.use-case';
+import { DeleteUserUseCase } from './application/use-cases/delete-user.use-case';
+
 @Module({
   imports: [
     // Config
@@ -144,6 +150,11 @@ import { MetricsModule, MetricsMiddleware, RequestLoggerMiddleware } from '@idp/
     RefreshTokenUseCase,
     LogoutUseCase,
     GetCurrentUserUseCase,
+    ListUsersUseCase,
+    CreateUserUseCase,
+    UpdateUserRolesUseCase,
+    UpdateUserStatusUseCase,
+    DeleteUserUseCase,
   ],
 })
 export class AuthModule implements NestModule {

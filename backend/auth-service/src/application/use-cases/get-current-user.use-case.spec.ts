@@ -23,6 +23,10 @@ const mockUserRepository: jest.Mocked<UserRepository> = {
   findByEmail: jest.fn(),
   existsByEmail: jest.fn(),
   createUser: jest.fn(),
+  findAll: jest.fn(),
+  updateRoles: jest.fn(),
+  updateStatus: jest.fn(),
+  softDelete: jest.fn(),
 };
 
 describe('GetCurrentUserUseCase', () => {
@@ -36,16 +40,13 @@ describe('GetCurrentUserUseCase', () => {
   it('returns the domain User when found', async () => {
     const user = makeUser();
     mockUserRepository.findById.mockResolvedValue(user);
-
     const result = await useCase.execute('user-1');
-
     expect(result).toBe(user);
     expect(mockUserRepository.findById).toHaveBeenCalledWith('user-1');
   });
 
   it('throws UserNotFoundError when user does not exist', async () => {
     mockUserRepository.findById.mockResolvedValue(null);
-
     await expect(useCase.execute('nonexistent-id')).rejects.toThrow(UserNotFoundError);
     expect(mockUserRepository.findById).toHaveBeenCalledWith('nonexistent-id');
   });

@@ -14,6 +14,7 @@ import CostPage from './pages/cost/CostPage';
 import ProtectedRoute from './components/layout/ProtectedRoute';
 import CopilotPage from './pages/copilot/CopilotPage';
 import DoraPage from './pages/dora/DoraPage';
+import UserManagementPage from './pages/admin/UserManagementPage';
 
 function AppRoutes() {
   return (
@@ -32,6 +33,8 @@ function AppRoutes() {
         <Route path="/copilot"     element={<ProtectedRoute><CopilotPage /></ProtectedRoute>} />
         <Route path="/dora" element={<ProtectedRoute><DoraPage /></ProtectedRoute>} />
         <Route path="*"            element={<Navigate to="/login" replace />} />
+        <Route path="/register" element={<RegisterPage />} />
+        <Route path="/admin/users" element={ <ProtectedRoute><UserManagementPage /></ProtectedRoute> } />
       </Routes>
     </BrowserRouter>
   );

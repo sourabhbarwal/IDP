@@ -103,6 +103,21 @@ export default function DashboardPage() {
             ) : (
               <span className="text-sm text-gray-500">No roles assigned</span>
             )}
+            {/* Only show to ADMIN users */}
+            {user?.roles?.includes('ADMIN') && (
+              <Link to="/admin/users"
+                className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6
+                          hover:border-primary-300 hover:shadow-md transition-all group">
+                <div className="text-3xl mb-3">👥</div>
+                <h3 className="font-semibold text-gray-800 group-hover:text-primary-600">
+                  User Management
+                </h3>
+                <p className="text-sm text-gray-500 mt-1">
+                  Create users, assign roles, manage access
+                </p>
+                <p className="text-xs text-red-500 mt-2 font-medium">ADMIN ONLY</p>
+              </Link>
+            )}
           </div>
         </div>
 
